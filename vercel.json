@@ -33,7 +33,7 @@
       "source": "/(.*)",
       "destination": {
         "service": "client",
-        "path": "/"
+        "path": "/index.html"
       }
     }
   ]

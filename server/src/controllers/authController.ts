@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 import { prisma, checkDatabaseConnection } from '../config/db';
-import { isGoogleOAuthConfigured } from '../config/env';
+import { env, isGoogleOAuthConfigured } from '../config/env';
 
 export async function getAuthStatus(_req: Request, res: Response) {
   const dbStatus = await checkDatabaseConnection();
@@ -15,7 +15,7 @@ export async function getAuthStatus(_req: Request, res: Response) {
     },
     googleOAuth: {
       configured: googleConfigured,
-      callbackUrl: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+      callbackUrl: env.GOOGLE_CALLBACK_URL,
     },
   });
 }

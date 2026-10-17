@@ -77,9 +77,9 @@ export const Login: React.FC = () => {
               <div>
                 <strong className="font-semibold block">Authentication Notice</strong>
                 {errorParam === 'oauth_not_configured'
-                  ? 'Google OAuth credentials have not been configured yet in the .env file.'
+                  ? 'Google OAuth credentials have not been configured yet in Vercel Environment Variables (or .env).'
                   : errorParam === 'db_connection_error'
-                  ? 'Database Connection Error: Could not reach PostgreSQL. Please configure a valid DATABASE_URL in your .env file.'
+                  ? 'Database Connection Error: Could not reach PostgreSQL. Please verify your DATABASE_URL in Vercel Environment Variables.'
                   : errorParam === 'auth_failed'
                   ? 'Google sign-in was cancelled or encountered an error. Please try again.'
                   : `Sign-in notice: ${errorParam}`}
@@ -167,15 +167,15 @@ export const Login: React.FC = () => {
                   <li>Create Credentials &gt; OAuth client ID &gt; Application type: <strong className="text-slate-200">Web application</strong>.</li>
                   <li>
                     Add Authorized redirect URI:
-                    <div className="mt-1 p-2 bg-slate-950 font-mono rounded text-slate-200 select-all">
-                      http://localhost:5000/api/auth/google/callback
+                    <div className="mt-1 p-2 bg-slate-950 font-mono rounded text-slate-200 select-all break-all">
+                      {status?.googleOAuth?.callbackUrl || (typeof window !== 'undefined' ? `${window.location.origin}/api/auth/google/callback` : 'http://localhost:5000/api/auth/google/callback')}
                     </div>
                   </li>
                   <li>
                     Status: {isConfigured ? (
                       <span className="text-break-short font-semibold">Configured with your client ID ✅</span>
                     ) : (
-                      <span className="text-amber-400 font-semibold">Pending configuration in .env</span>
+                      <span className="text-amber-400 font-semibold">Pending configuration in Vercel / .env</span>
                     )}
                   </li>
                 </ol>

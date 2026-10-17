@@ -31,13 +31,18 @@ export function createApp(): Express {
     })
   );
 
-  // Trust reverse proxy (e.g. Nginx, Cloudflare, Heroku) in production
-  if (env.NODE_ENV === 'production') {
+  // Trust reverse proxy (e.g. Vercel, Nginx, Cloudflare)
+  if (env.NODE_ENV === 'production' || Boolean(process.env.VERCEL)) {
     app.set('trust proxy', 1);
   }
 
   // CORS configuration
-  const allowedOrigins = [env.CLIENT_URL, 'http://localhost:3000', 'http://127.0.0.1:3000'];
+  const allowedOrigins = [
+    env.CLIENT_URL,
+    'https://my-25-min-focus.vercel.app',
+    'http://localhost:3000',
+    'http://127.0.0.1:3000',
+  ];
   app.use(
     cors({
       origin: (origin, callback) => {
@@ -87,19 +92,25 @@ export function createApp(): Express {
 
       let sslConfig: any = undefined;
       if (isRemoteSsl) {
-        const customCaPath = process.env.NODE_EXTRA_CA_CERTS;
-        const defaultCaPath = path.resolve(__dirname, '../certs/prod-ca-2021.crt');
-        let caContent: string | undefined = undefined;
+        const possibleCaPaths = [
+          process.env.NODE_EXTRA_CA_CERTS,
+          path.resolve(__dirname, '../certs/prod-ca-2021.crt'),
+          path.resolve(__dirname, '../../server/certs/prod-ca-2021.crt'),
+          path.resolve(process.cwd(), 'server/certs/prod-ca-2021.crt'),
+          path.resolve(process.cwd(), 'certs/prod-ca-2021.crt'),
+        ].filter(Boolean) as string[];
 
-        if (customCaPath && fs.existsSync(customCaPath)) {
-          caContent = fs.readFileSync(customCaPath, 'utf8');
-        } else if (fs.existsSync(defaultCaPath)) {
-          caContent = fs.readFileSync(defaultCaPath, 'utf8');
+        let caContent: string | undefined = undefined;
+        for (const p of possibleCaPaths) {
+          if (fs.existsSync(p)) {
+            caContent = fs.readFileSync(p, 'utf8');
+            break;
+          }
         }
 
         sslConfig = {
           rejectUnauthorized: true,
-          ca: caContent,
+          ...(caContent ? { ca: caContent } : {}),
         };
       }
 
@@ -116,6 +127,8 @@ export function createApp(): Express {
     }
   }
 
+  const isProd = env.NODE_ENV === 'production' || Boolean(process.env.VERCEL);
+
   app.use(
     session({
       name: 'focusflow.sid',
@@ -125,8 +138,8 @@ export function createApp(): Express {
       saveUninitialized: false,
       cookie: {
         httpOnly: true,
-        secure: env.NODE_ENV === 'production',
-        sameSite: env.NODE_ENV === 'production' ? 'none' : 'lax',
+        secure: isProd,
+        sameSite: 'lax',
         maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       },
     })

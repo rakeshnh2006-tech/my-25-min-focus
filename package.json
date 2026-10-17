@@ -1,0 +1,20 @@
+{
+  "name": "focusflow-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FocusFlow - Production-Ready Pomodoro Study Productivity Platform for College Students",
+  "scripts": {
+    "install:all": "npm install && npm install --prefix server && npm install --prefix client",
+    "dev": "concurrently -n \"SERVER,CLIENT\" -c \"blue,green\" \"npm run dev --prefix server\" \"npm run dev --prefix client\"",
+    "dev:server": "npm run dev --prefix server",
+    "dev:client": "npm run dev --prefix client",
+    "build": "npm run build --prefix client && npm run build --prefix server",
+    "test": "npm run test --prefix server",
+    "prisma:generate": "npm run prisma:generate --prefix server",
+    "prisma:migrate": "npm run prisma:migrate --prefix server",
+    "prisma:seed": "npm run prisma:seed --prefix server"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

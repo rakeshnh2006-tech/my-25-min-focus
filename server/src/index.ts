@@ -1,8 +1,6 @@
-import { createApp } from './app';
+import app from './app';
 import { env, isGoogleOAuthConfigured, isDatabaseConfigured } from './config/env';
 import { checkDatabaseConnection } from './config/db';
-
-const app = createApp();
 
 if (!process.env.VERCEL) {
   app.listen(env.PORT, async () => {

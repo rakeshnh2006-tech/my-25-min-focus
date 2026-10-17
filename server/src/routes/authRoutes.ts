@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import passport from 'passport';
 import { getAuthStatus, getMe, logout } from '../controllers/authController';
 import { requireAuth } from '../middleware/auth';
-import { env, isGoogleOAuthConfigured } from '../config/env';
+import { env, isGoogleOAuthConfigured, isDatabaseConfigured } from '../config/env';
 
 const router = Router();
 
@@ -22,6 +22,10 @@ router.get('/google', (req: Request, res: Response, next: NextFunction) => {
   if (!isGoogleOAuthConfigured()) {
     return res.redirect(getClientRedirect('/login?error=oauth_not_configured'));
   }
+  if (!isDatabaseConfigured()) {
+    console.error('[Google OAuth] Attempted initiation but DATABASE_URL is not configured.');
+    return res.redirect(getClientRedirect('/login?error=db_connection_error'));
+  }
   passport.authenticate('google', {
     scope: ['profile', 'email'],
     prompt: 'select_account',
@@ -35,18 +39,33 @@ router.get(
     if (!isGoogleOAuthConfigured()) {
       return res.redirect(getClientRedirect('/login?error=oauth_not_configured'));
     }
+    if (!isDatabaseConfigured()) {
+      console.error('[Google OAuth] Callback received but DATABASE_URL is not configured.');
+      return res.redirect(getClientRedirect('/login?error=db_connection_error'));
+    }
     if (req.query.error || !req.query.code) {
       const errParam = typeof req.query.error === 'string' ? req.query.error : 'auth_failed';
       return res.redirect(getClientRedirect(`/login?error=${encodeURIComponent(errParam)}`));
     }
     passport.authenticate('google', (err: any, user: any) => {
       if (err) {
-        console.error('[Google OAuth Callback Error]:', err.message || err);
+        console.error('[Google OAuth Callback Error]:', err?.message || err);
+        const errMsg = String(err?.message || err || '');
+        const errName = String(err?.name || '');
+        const errCodeStr = String(err?.code || '');
         const isDbError =
-          err.message &&
-          (err.message.includes("Can't reach database server") ||
-            err.message.includes('PrismaClient') ||
-            err.code === 'P1001');
+          !isDatabaseConfigured() ||
+          errName.includes('Prisma') ||
+          errMsg.includes("Can't reach database server") ||
+          errMsg.includes('PrismaClient') ||
+          errMsg.includes('DATABASE_URL') ||
+          errMsg.includes('datasource') ||
+          errMsg.includes('database') ||
+          errMsg.includes('connection') ||
+          errCodeStr.startsWith('P') ||
+          errCodeStr === 'ECONNREFUSED' ||
+          errCodeStr === 'ETIMEDOUT';
+
         const errCode = isDbError ? 'db_connection_error' : 'auth_failed';
         return res.redirect(getClientRedirect(`/login?error=${errCode}`));
       }

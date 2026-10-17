@@ -86,5 +86,30 @@ describe('API Integration Tests', () => {
       assert.strictEqual(res.status, 200);
       assert.strictEqual(res.body.success, true);
     });
+
+    it('verifies that an authenticated session passes requireAuth and returns 200 on /api/auth/me', async () => {
+      const existingUser = await prisma.user.findFirst();
+      if (!existingUser) {
+        return;
+      }
+
+      const testApp = createApp();
+      testApp.post('/test-session-login', (req, res) => {
+        req.login(existingUser, (err) => {
+          if (err) return res.status(500).json({ error: err.message });
+          return res.json({ success: true, user: existingUser });
+        });
+      });
+
+      const agent = request.agent(testApp);
+      const loginRes = await agent.post('/test-session-login');
+      assert.strictEqual(loginRes.status, 200);
+
+      const meRes = await agent.get('/api/auth/me');
+      assert.strictEqual(meRes.status, 200);
+      assert.strictEqual(meRes.body.user.id, existingUser.id);
+      assert.strictEqual(meRes.body.user.email, existingUser.email);
+      assert.ok('preference' in meRes.body);
+    });
   });
 });

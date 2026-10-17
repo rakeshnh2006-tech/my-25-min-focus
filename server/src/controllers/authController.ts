@@ -64,7 +64,8 @@ export function logout(req: Request, res: Response) {
   const finalize = () => {
     res.clearCookie('focusflow.sid', { path: '/' });
     if (isHtml) {
-      return res.redirect(`${process.env.CLIENT_URL || 'http://localhost:3000'}/login`);
+      const loginUrl = (process.env.VERCEL || !process.env.CLIENT_URL) ? '/login' : `${process.env.CLIENT_URL}/login`;
+      return res.redirect(loginUrl);
     }
     return res.json({ success: true, message: 'Logged out successfully' });
   };

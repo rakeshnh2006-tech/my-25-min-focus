@@ -12,25 +12,26 @@
   },
   "rewrites": [
     {
-      "source": "/api/(.*)",
+      "source": "/api/:path*",
       "destination": {
         "service": "server"
       }
     },
     {
-      "source": "/assets/(.*)",
+      "source": "/assets/:path*",
       "destination": {
         "service": "client"
       }
     },
     {
-      "source": "/(.*\\.[a-zA-Z0-9]+)",
+      "source": "/",
       "destination": {
-        "service": "client"
+        "service": "client",
+        "path": "/index.html"
       }
     },
     {
-      "source": "/(.*)",
+      "source": "/:path*",
       "destination": {
         "service": "client",
         "path": "/index.html"

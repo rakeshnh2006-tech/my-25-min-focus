@@ -32,9 +32,10 @@ export const env = {
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',
   GOOGLE_CALLBACK_URL:
-    (process.env.VERCEL || (canonicalHost && !canonicalHost.includes('localhost')))
+    process.env.GOOGLE_CALLBACK_URL ||
+    (canonicalHost
       ? `${canonicalHost}/api/auth/google/callback`
-      : (process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback'),
+      : 'http://localhost:5000/api/auth/google/callback'),
   GOOGLE_API_KEY: process.env.GOOGLE_API_KEY || '',
 };
 

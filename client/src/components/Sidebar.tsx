@@ -172,14 +172,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {user.name ? user.name.charAt(0).toUpperCase() : 'C'}
                 </div>
               )}
-              <div
-                className="min-w-0 cursor-pointer"
-                onClick={() => onNavigate('login')}
-                title="Open login & accounts"
-              >
-                <p className="text-xs font-semibold text-white truncate hover:text-blue-400 transition-colors">
-                  {user.name}
-                </p>
+              <div className="min-w-0">
+                <p className="text-xs font-semibold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 truncate">
                   {isGuest ? 'Local / Offline Mode' : 'Cloud Sync Active'}
                 </p>
@@ -188,9 +182,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
             {isGuest ? (
               <button
-                onClick={() => {
-                  window.location.href = '/api/auth/google';
-                }}
+                onClick={() => onNavigate('login')}
                 title="Sign in with Google"
                 className="p-1.5 text-blue-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
               >

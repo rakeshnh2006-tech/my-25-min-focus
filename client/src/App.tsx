@@ -17,50 +17,38 @@ import { AnalyticsPage } from './pages/Analytics';
 import { HistoryPage } from './pages/History';
 import { SettingsPage } from './pages/Settings';
 
-const getInitialPage = (): string => {
-  if (typeof window !== 'undefined') {
-    // 1. Check hash
-    const hash = window.location.hash.replace('#', '').split('?')[0];
-    if (
-      ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
-        hash
-      )
-    ) {
-      return hash;
-    }
-
-    // 2. Check pathname
-    const path = window.location.pathname.replace(/^\//, '').split('/')[0].split('?')[0];
-    if (
-      ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
-        path
-      )
-    ) {
-      return path;
-    }
-  }
-  return 'dashboard';
-};
-
 const AppContent: React.FC = () => {
   const { user, preference, isLoading, loginAsGuest } = useAuth();
-  const [currentPage, setCurrentPage] = useState<string>(getInitialPage);
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      if (
+        ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
+          hash
+        )
+      ) {
+        return hash;
+      }
+    }
+    return 'dashboard';
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
-  // Sync URL hash & history
+  // Sync URL hash
   useEffect(() => {
-    const handleUrlChange = () => {
-      const page = getInitialPage();
-      setCurrentPage(page);
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (
+        ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
+          hash
+        )
+      ) {
+        setCurrentPage(hash);
+      }
     };
-
-    window.addEventListener('hashchange', handleUrlChange);
-    window.addEventListener('popstate', handleUrlChange);
-    return () => {
-      window.removeEventListener('hashchange', handleUrlChange);
-      window.removeEventListener('popstate', handleUrlChange);
-    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const handleNavigate = (page: string) => {
@@ -94,13 +82,11 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 1. If viewing the login page (unauthenticated or guest wishing to connect Google / switch account)
-  if (currentPage === 'login') {
-    return <Login onBackToApp={() => handleNavigate(user ? 'dashboard' : 'landing')} />;
-  }
-
-  // 2. Unauthenticated user -> Landing
+  // Unauthenticated user -> Landing or Login
   if (!user) {
+    if (currentPage === 'login') {
+      return <Login onBackToApp={() => handleNavigate('landing')} />;
+    }
     return (
       <Landing
         onStartFocusing={() => {
@@ -112,7 +98,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 3. If authenticated user explicitly browses to landing page
+  // If authenticated user explicitly browses to landing page
   if (currentPage === 'landing') {
     return (
       <Landing
@@ -122,7 +108,7 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // 4. Authenticated user -> Main App Shell
+  // Authenticated user -> Main App Shell
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Sidebar */}
@@ -149,7 +135,6 @@ const AppContent: React.FC = () => {
           {currentPage === 'analytics' && <AnalyticsPage />}
           {currentPage === 'history' && <HistoryPage />}
           {currentPage === 'settings' && <SettingsPage />}
-          {currentPage === 'login' && <Login onBackToApp={() => handleNavigate('dashboard')} />}
         </main>
       </div>
 

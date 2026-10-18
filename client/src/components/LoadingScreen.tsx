@@ -13,7 +13,7 @@ export const LoadingScreen: React.FC<LoadingScreenProps> = ({ isLoading, onFinis
 
   // Progressive realistic loading sequence
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
 
     if (isLoading) {
       // Smoothly advance progress while waiting for authentication and initial data

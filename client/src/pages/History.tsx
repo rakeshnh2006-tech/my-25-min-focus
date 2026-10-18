@@ -18,17 +18,23 @@ import { FocusSession } from '../types';
 export const HistoryPage: React.FC = () => {
   const { user, subjects } = useAuth();
 
-  const [sessions, setSessions] = useState<FocusSession[]>([]);
-  const [total, setTotal] = useState(0);
+  const [sessions, setSessions] = useState<FocusSession[]>(() =>
+    LocalStorageRepository.getSessions().slice(0, 15)
+  );
+  const [total, setTotal] = useState<number>(() =>
+    LocalStorageRepository.getSessions().length
+  );
   const [page, setPage] = useState(1);
   const [limit] = useState(15);
-  const [totalPages, setTotalPages] = useState(1);
+  const [totalPages, setTotalPages] = useState<number>(() =>
+    Math.max(1, Math.ceil(LocalStorageRepository.getSessions().length / 15))
+  );
 
   // Filters
   const [statusFilter, setStatusFilter] = useState<string>('');
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     setIsLoading(true);

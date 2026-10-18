@@ -6,6 +6,7 @@ import { TimerProvider } from './context/TimerContext';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { OnboardingModal } from './components/OnboardingModal';
+import { LoadingScreen } from './components/LoadingScreen';
 
 import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
@@ -34,6 +35,7 @@ const AppContent: React.FC = () => {
   });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+  const [loadingDismissed, setLoadingDismissed] = useState<boolean>(false);
 
   // Sync URL hash
   useEffect(() => {
@@ -63,92 +65,79 @@ const AppContent: React.FC = () => {
     }
   }, [user, preference]);
 
-  // Loading screen
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-[#080D1A] flex flex-col items-center justify-center space-y-4 text-white">
-        <div className="relative w-16 h-16 flex items-center justify-center">
-          <div className="absolute inset-0 bg-blue-500/20 rounded-2xl blur-lg animate-pulse" />
-          <img
-            src="/logo-256.png"
-            alt="Cognify"
-            className="w-14 h-14 rounded-2xl object-cover shadow-2xl border border-blue-500/30 animate-pulse"
+  return (
+    <>
+      {/* Premium Branded Loading Overlay with Progress Bar */}
+      {!loadingDismissed && (
+        <LoadingScreen
+          isLoading={isLoading}
+          onFinished={() => setLoadingDismissed(true)}
+        />
+      )}
+
+      {/* Render content once auth state is resolved */}
+      {!user ? (
+        currentPage === 'landing' ? (
+          <Landing
+            onStartFocusing={() => {
+              window.location.href = '/api/auth/google';
+            }}
+            onOpenLogin={() => handleNavigate('login')}
+          />
+        ) : (
+          <Login onBackToApp={() => handleNavigate('landing')} />
+        )
+      ) : currentPage === 'landing' ? (
+        <Landing
+          onStartFocusing={() => handleNavigate('dashboard')}
+          onOpenLogin={() => handleNavigate('dashboard')}
+        />
+      ) : (
+        <div className="min-h-screen bg-[#070B16] text-[#F8FAFC] flex flex-col lg:flex-row relative overflow-x-hidden selection:bg-focus-500 selection:text-white">
+          {/* Ambient Study Lighting Orbs (Optimal for optical calm and depth) */}
+          <div className="fixed top-[-10%] left-[15%] w-[650px] h-[650px] bg-gradient-to-br from-blue-600/12 via-indigo-600/8 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+          <div className="fixed bottom-[-10%] right-[10%] w-[550px] h-[550px] bg-gradient-to-tl from-emerald-600/10 via-teal-600/6 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+          <div className="fixed top-[45%] right-[25%] w-[400px] h-[400px] bg-gradient-to-tr from-violet-600/6 via-fuchsia-600/4 to-transparent rounded-full blur-[130px] pointer-events-none -z-10" />
+
+          {/* Sidebar */}
+          <Sidebar
+            currentPage={currentPage}
+            onNavigate={handleNavigate}
+            mobileOpen={mobileSidebarOpen}
+            onCloseMobile={() => setMobileSidebarOpen(false)}
+          />
+
+          {/* Main Content Area */}
+          <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
+            <Header
+              title={currentPage}
+              onOpenMobile={() => setMobileSidebarOpen(true)}
+              onNavigate={handleNavigate}
+            />
+
+            <main className="flex-1 p-3 xs:p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
+              {/* Hardware-accelerated smooth page transition wrapper */}
+              <div key={currentPage} className="animate-in fade-in-50 duration-200">
+                {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} />}
+                {currentPage === 'timer' && <TimerPage />}
+                {currentPage === 'tasks' && <TasksPage onNavigate={handleNavigate} />}
+                {currentPage === 'subjects' && <SubjectsPage />}
+                {currentPage === 'analytics' && <AnalyticsPage />}
+                {currentPage === 'history' && <HistoryPage />}
+                {currentPage === 'settings' && <SettingsPage />}
+              </div>
+            </main>
+          </div>
+
+          {/* Onboarding Dialog for First-Time Users */}
+          <OnboardingModal
+            isOpen={showOnboarding}
+            onClose={() => setShowOnboarding(false)}
+            onStartFirstSession={() => handleNavigate('dashboard')}
           />
         </div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Loading Cognify...
-        </p>
-      </div>
-    );
-  }
-
-  // Unauthenticated user -> Enforce Google Login
-  if (!user) {
-    if (currentPage === 'landing') {
-      return (
-        <Landing
-          onStartFocusing={() => {
-            window.location.href = '/api/auth/google';
-          }}
-          onOpenLogin={() => handleNavigate('login')}
-        />
-      );
-    }
-    return <Login onBackToApp={() => handleNavigate('landing')} />;
-  }
-
-  // If authenticated user explicitly browses to landing page
-  if (currentPage === 'landing') {
-    return (
-      <Landing
-        onStartFocusing={() => handleNavigate('dashboard')}
-        onOpenLogin={() => handleNavigate('dashboard')}
-      />
-    );
-  }
-
-  // Authenticated user -> Main App Shell
-  return (
-    <div className="min-h-screen bg-[#070B16] text-[#F8FAFC] flex flex-col lg:flex-row relative overflow-x-hidden selection:bg-focus-500 selection:text-white">
-      {/* Ambient Study Lighting Orbs (Optimal for optical calm and depth) */}
-      <div className="fixed top-[-10%] left-[15%] w-[650px] h-[650px] bg-gradient-to-br from-blue-600/12 via-indigo-600/8 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed bottom-[-10%] right-[10%] w-[550px] h-[550px] bg-gradient-to-tl from-emerald-600/10 via-teal-600/6 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="fixed top-[45%] right-[25%] w-[400px] h-[400px] bg-gradient-to-tr from-violet-600/6 via-fuchsia-600/4 to-transparent rounded-full blur-[130px] pointer-events-none -z-10" />
-
-      {/* Sidebar */}
-      <Sidebar
-        currentPage={currentPage}
-        onNavigate={handleNavigate}
-        mobileOpen={mobileSidebarOpen}
-        onCloseMobile={() => setMobileSidebarOpen(false)}
-      />
-
-      {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
-        <Header
-          title={currentPage}
-          onOpenMobile={() => setMobileSidebarOpen(true)}
-          onNavigate={handleNavigate}
-        />
-
-        <main className="flex-1 p-3 xs:p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
-          {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} />}
-          {currentPage === 'timer' && <TimerPage />}
-          {currentPage === 'tasks' && <TasksPage onNavigate={handleNavigate} />}
-          {currentPage === 'subjects' && <SubjectsPage />}
-          {currentPage === 'analytics' && <AnalyticsPage />}
-          {currentPage === 'history' && <HistoryPage />}
-          {currentPage === 'settings' && <SettingsPage />}
-        </main>
-      </div>
-
-      {/* Onboarding Dialog for First-Time Users */}
-      <OnboardingModal
-        isOpen={showOnboarding}
-        onClose={() => setShowOnboarding(false)}
-        onStartFirstSession={() => handleNavigate('dashboard')}
-      />
-    </div>
+      )}
+    </>
   );
 };
 

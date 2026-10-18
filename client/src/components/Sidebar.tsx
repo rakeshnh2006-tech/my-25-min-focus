@@ -185,18 +185,27 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {navContent}
       </aside>
 
-      {/* Mobile Drawer */}
-      {mobileOpen && (
-        <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity"
-            onClick={onCloseMobile}
-          />
-          <aside className="relative flex-1 flex flex-col max-w-xs w-full bg-[#080D1A] z-10 shadow-2xl">
-            {navContent}
-          </aside>
-        </div>
-      )}
+      {/* Mobile Drawer with hardware-accelerated slide and fade */}
+      <div
+        className={`fixed inset-0 z-50 lg:hidden flex transition-all duration-300 ease-out ${
+          mobileOpen ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+      >
+        <div
+          className={`fixed inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-300 ease-out ${
+            mobileOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={onCloseMobile}
+          aria-hidden="true"
+        />
+        <aside
+          className={`relative flex-1 flex flex-col max-w-xs w-full bg-[#0A1020] z-10 shadow-2xl transform transition-transform duration-300 ease-out will-change-transform ${
+            mobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          {navContent}
+        </aside>
+      </div>
     </>
   );
 };

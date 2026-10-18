@@ -246,6 +246,20 @@
     color-scheme: light;
   }
 
+  /* Keyframes for loading bar shimmer */
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(200%); }
+  }
+
+  /* Cognify Loading Screen (Consistent dark cinematic branding in all themes) */
+  .cognify-loading-screen,
+  html.light .cognify-loading-screen,
+  html:not(.dark) .cognify-loading-screen {
+    background-color: #070B16 !important;
+    color: #F8FAFC !important;
+  }
+
   html:not(.dark) body,
   html.light body {
     background-color: #F8FAFC !important;

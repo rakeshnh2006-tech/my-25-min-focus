@@ -203,8 +203,9 @@ export const AnalyticsPage: React.FC = () => {
   }, [range, computeLocalAnalytics]);
 
   useEffect(() => {
+    computeLocalAnalytics(range);
     fetchAnalytics();
-  }, [fetchAnalytics]);
+  }, [fetchAnalytics, range, computeLocalAnalytics]);
 
   const heatmapColors = [
     'bg-slate-900 border-slate-800', // 0: 0 mins

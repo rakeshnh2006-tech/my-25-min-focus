@@ -26,7 +26,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
   const { user, subjects } = useAuth();
   const { setSelectedSubjectId, setSelectedTaskId } = useTimer();
 
-  const [tasks, setTasks] = useState<StudyTask[]>([]);
+  const [tasks, setTasks] = useState<StudyTask[]>(() => LocalStorageRepository.getTasks());
   const [filter, setFilter] = useState<'all' | 'today' | 'upcoming' | 'completed'>('all');
   const [selectedSubjectFilter, setSelectedSubjectFilter] = useState<string>('ALL');
 

@@ -27,6 +27,7 @@ interface TimerContextType {
   startTimer: () => Promise<void>;
   pauseTimer: () => Promise<void>;
   resumeTimer: () => Promise<void>;
+  endSession: (taskIdOverride?: string | null) => Promise<void>;
   resetTimer: () => Promise<void>;
   skipSession: () => Promise<void>;
   abandonSession: () => Promise<void>;
@@ -429,6 +430,82 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setActiveSession(null);
   };
 
+  const endSession = async (taskIdOverride?: string | null) => {
+    soundManager.playTick();
+    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+
+    const effectiveTaskId = taskIdOverride !== undefined ? taskIdOverride : selectedTaskId;
+
+    // Calculate actual elapsed seconds
+    let elapsedSeconds = 0;
+    if (mode === 'STOPWATCH') {
+      elapsedSeconds = stopwatchElapsedSeconds;
+    } else {
+      elapsedSeconds = Math.max(1, totalDuration - secondsRemaining);
+    }
+
+    setStatus('COMPLETED');
+    setSecondsRemaining(0);
+    setLastCompletedMode(mode);
+
+    // Audio chime
+    if (soundEnabled) {
+      if (mode === 'FOCUS') {
+        soundManager.playSessionComplete();
+      } else {
+        soundManager.playBreakComplete();
+      }
+    }
+
+    // Browser Notification
+    if (notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'granted') {
+        const title = mode === 'FOCUS' ? 'Session Concluded! 🎯' : 'Break Ended! ⏰';
+        const mins = Math.max(1, Math.round(elapsedSeconds / 60));
+        const body =
+          mode === 'FOCUS'
+            ? `Great focus! You completed ${mins} ${mins === 1 ? 'minute' : 'minutes'} of deep study.`
+            : 'Break completed. Ready to get back into focus?';
+        try {
+          new Notification(title, { body, icon: '/favicon.png' });
+        } catch {
+          // ignore
+        }
+      }
+    }
+
+    // Save session completion (Unified offline & cloud)
+    if (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK') {
+      LocalStorageRepository.recordCompletedSession(
+        mode as SessionType,
+        elapsedSeconds,
+        selectedSubjectId,
+        effectiveTaskId
+      );
+    }
+
+    if (activeSession && user) {
+      try {
+        await apiRequest(`/api/sessions/${activeSession.id}/complete`, {
+          method: 'POST',
+          body: JSON.stringify({
+            actualDuration: elapsedSeconds,
+            taskId: effectiveTaskId || undefined,
+          }),
+        });
+      } catch (err) {
+        console.warn('Failed to complete session on server (persisted locally):', err);
+      }
+    }
+
+    // Update cycle counts if Focus completed
+    if (mode === 'FOCUS') {
+      setCycleCount((prev) => (prev >= longBreakInterval ? 1 : prev + 1));
+    }
+
+    setShowCompletionModal(true);
+  };
+
   const abandonSession = async () => {
     await resetTimer();
   };
@@ -618,6 +695,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         startTimer,
         pauseTimer,
         resumeTimer,
+        endSession,
         resetTimer,
         skipSession,
         abandonSession,

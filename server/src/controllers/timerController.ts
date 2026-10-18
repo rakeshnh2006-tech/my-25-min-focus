@@ -193,6 +193,8 @@ export async function completeSession(req: Request, res: Response) {
     });
   }
 
+  const { actualDuration: reqActualDuration, taskId: reqTaskId } = req.body || {};
+
   const now = new Date();
   const pauses = TimerService.parsePauseIntervals(session.pauseIntervals);
 
@@ -201,7 +203,13 @@ export async function completeSession(req: Request, res: Response) {
     pauses[pauses.length - 1].end = now.toISOString();
   }
 
-  const actualDuration = TimerService.calculateActualDuration(session.startedAt, now, pauses);
+  const calculatedDuration = TimerService.calculateActualDuration(session.startedAt, now, pauses);
+  const actualDuration =
+    typeof reqActualDuration === 'number' && reqActualDuration >= 0
+      ? reqActualDuration
+      : calculatedDuration;
+
+  const effectiveTaskId = reqTaskId !== undefined ? reqTaskId : session.taskId;
 
   // Execute in transaction: update session, increment task counter if applicable
   const result = await prisma.$transaction(async (tx) => {
@@ -212,6 +220,7 @@ export async function completeSession(req: Request, res: Response) {
         endedAt: now,
         actualDuration: Math.min(actualDuration, session.plannedDuration + 300), // Cap at planned duration + small buffer
         pauseIntervals: JSON.stringify(pauses),
+        ...(effectiveTaskId !== undefined ? { taskId: effectiveTaskId } : {}),
       },
       include: {
         subject: true,
@@ -219,9 +228,9 @@ export async function completeSession(req: Request, res: Response) {
       },
     });
 
-    if (session.sessionType === 'FOCUS' && session.taskId) {
+    if (session.sessionType === 'FOCUS' && effectiveTaskId) {
       await tx.studyTask.update({
-        where: { id: session.taskId },
+        where: { id: effectiveTaskId },
         data: {
           completedSessions: { increment: 1 },
         },

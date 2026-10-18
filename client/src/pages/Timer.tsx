@@ -14,6 +14,7 @@ import {
   Sparkles,
   Coffee,
   Check,
+  Square,
 } from 'lucide-react';
 import { useTimer } from '../context/TimerContext';
 import { useAuth } from '../context/AuthContext';
@@ -32,6 +33,7 @@ export const TimerPage: React.FC = () => {
     startTimer,
     pauseTimer,
     resumeTimer,
+    endSession,
     resetTimer,
     skipSession,
     abandonSession,
@@ -280,6 +282,27 @@ export const TimerPage: React.FC = () => {
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Resume</span>
+            </button>
+          )}
+
+          {/* End Session Button (Right beside Start / Pause / Resume) */}
+          {status === 'IDLE' ? (
+            <button
+              disabled
+              title="Start a session first before ending it"
+              className="flex items-center space-x-2 px-6 py-4 rounded-2xl bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 font-bold text-sm"
+            >
+              <Square className="w-4 h-4 fill-current" />
+              <span>End Session</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => endSession()}
+              title="End and complete current session early"
+              className="flex items-center space-x-2 px-6 py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-extrabold text-sm shadow-lg shadow-rose-500/25 transition-all duration-200 hover:scale-105 active:scale-95"
+            >
+              <Square className="w-4 h-4 fill-current" />
+              <span>End Session</span>
             </button>
           )}
 

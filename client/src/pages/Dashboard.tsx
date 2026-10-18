@@ -17,6 +17,9 @@ import {
   Sparkles,
   ArrowRight,
   Plus,
+  Square,
+  X,
+  ChevronDown,
 } from 'lucide-react';
 import { useTimer } from '../context/TimerContext';
 import { useAuth } from '../context/AuthContext';
@@ -38,6 +41,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     startTimer,
     pauseTimer,
     resumeTimer,
+    endSession,
     resetTimer,
     skipSession,
     switchMode,
@@ -67,6 +71,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const [showRainSlider, setShowRainSlider] = useState<boolean>(false);
   const [newTaskTitle, setNewTaskTitle] = useState<string>('');
   const [showQuickAddTask, setShowQuickAddTask] = useState<boolean>(false);
+  const [showAssignTaskModal, setShowAssignTaskModal] = useState<boolean>(false);
+  const [newAssignTaskTitle, setNewAssignTaskTitle] = useState<string>('');
+  const [newAssignTaskSubjectId, setNewAssignTaskSubjectId] = useState<string>('');
 
   // Sync tasks & daily stats from LocalStorage & Cloud API
   const refreshData = useCallback(async () => {
@@ -143,6 +150,66 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setNewTaskTitle('');
     setShowQuickAddTask(false);
     setSelectedTaskId(created.id);
+    refreshData();
+  };
+
+  const handleAssignTask = (task: StudyTask) => {
+    setSelectedTaskId(task.id);
+    if (task.subjectId) {
+      setSelectedSubjectId(task.subjectId);
+    }
+    setShowAssignTaskModal(false);
+  };
+
+  const handleUnassignTask = () => {
+    setSelectedTaskId(null);
+    setShowAssignTaskModal(false);
+  };
+
+  const handleCreateAndAssignTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newAssignTaskTitle.trim()) return;
+
+    const title = newAssignTaskTitle.trim();
+    const subjectId = newAssignTaskSubjectId || selectedSubjectId || undefined;
+
+    let createdId: string | null = null;
+    if (user) {
+      try {
+        const res = await apiRequest<{ task: StudyTask }>('/api/tasks', {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            subjectId,
+            priority: 'MEDIUM',
+            estimatedSessions: 2,
+          }),
+        });
+        if (res?.task) {
+          createdId = res.task.id;
+        }
+      } catch (err) {
+        console.warn('Could not create task on server, falling back to local storage:', err);
+      }
+    }
+
+    if (!createdId) {
+      const created = LocalStorageRepository.addTask({
+        title,
+        subjectId,
+        priority: 'MEDIUM',
+        estimatedSessions: 2,
+      });
+      createdId = created.id;
+    }
+
+    setSelectedTaskId(createdId);
+    if (subjectId) {
+      setSelectedSubjectId(subjectId);
+    }
+    setNewAssignTaskTitle('');
+    setNewAssignTaskSubjectId('');
+    setShowAssignTaskModal(false);
     refreshData();
   };
 
@@ -439,7 +506,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'IDLE' && (
             <button
               onClick={startTimer}
-              className="clay-btn clay-btn-focus flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-focus flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Start Session</span>
@@ -452,7 +519,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'RUNNING' && (
             <button
               onClick={pauseTimer}
-              className="clay-btn clay-btn-amber flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-amber flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
             >
               <Pause className="w-5 h-5 fill-current" />
               <span>Pause</span>
@@ -465,12 +532,63 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'PAUSED' && (
             <button
               onClick={resumeTimer}
-              className="clay-btn clay-btn-focus flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-focus flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Resume</span>
               <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold">
                 Space
+              </span>
+            </button>
+          )}
+
+          {/* End Session Button (Right beside Start Session / Pause / Resume) */}
+          {status === 'IDLE' ? (
+            <button
+              disabled
+              title="Start a session first before ending it"
+              className="clay-chip flex items-center space-x-2.5 px-6 sm:px-7 py-4 rounded-2xl text-base bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 select-none"
+            >
+              <Square className="w-4 h-4 fill-current" />
+              <span>End Session</span>
+            </button>
+          ) : (
+            <button
+              onClick={() => endSession()}
+              title="End session early and record your focus progress"
+              className="clay-btn bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 hover:from-rose-600 hover:to-red-700 text-white flex items-center space-x-2.5 px-6 sm:px-7 py-4 rounded-2xl text-base shadow-xl shadow-rose-500/25 border-t border-rose-300/30 transition-all active:scale-95"
+            >
+              <Square className="w-4 h-4 fill-current" />
+              <span>End Session</span>
+            </button>
+          )}
+
+          {/* Assign Task Button (Right beside End Session) */}
+          {activeTask ? (
+            <button
+              onClick={() => setShowAssignTaskModal(true)}
+              className="clay-chip flex items-center space-x-2.5 px-5 py-4 rounded-2xl text-sm font-bold bg-blue-500/15 hover:bg-blue-500/25 text-blue-200 border border-blue-400/40 shadow-lg shadow-blue-500/15 transition-all max-w-[220px] sm:max-w-[260px] group"
+              title={`Assigned Task: "${activeTask.title}". Click to switch or unassign.`}
+            >
+              <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <div className="flex flex-col text-left min-w-0">
+                <span className="text-[9px] text-blue-300 font-semibold uppercase tracking-wider leading-none">Assigned Task</span>
+                <span className="truncate text-xs text-white font-bold">{activeTask.title}</span>
+              </div>
+              <span className="text-[10px] bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-md font-mono font-bold flex-shrink-0 ml-1">
+                {activeTask.completedSessions}/{activeTask.estimatedSessions}🍅
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowAssignTaskModal(true)}
+              className="clay-btn bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white flex items-center space-x-2 px-6 py-4 rounded-2xl text-base font-bold border border-white/[0.08] hover:border-blue-500/40 shadow-xl transition-all active:scale-95 group"
+              title="Assign a study task to this focus session"
+            >
+              <Target className="w-4 h-4 text-blue-400 group-hover:text-blue-300 transition-colors" />
+              <span>Assign Task</span>
+              <span className="text-[10px] bg-blue-500/20 text-blue-300 px-2 py-0.5 rounded-md font-bold">
+                +
               </span>
             </button>
           )}
@@ -728,6 +846,200 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
         </div>
       </div>
+
+      {/* 4. ASSIGN TASK MODAL DIALOG */}
+      {showAssignTaskModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
+          <div className="clay-card w-full max-w-lg p-6 sm:p-7 relative border border-white/[0.12] shadow-2xl max-h-[90vh] flex flex-col">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between pb-4 border-b border-white/[0.08]">
+              <div className="flex items-center space-x-3">
+                <div className="w-10 h-10 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400">
+                  <Target className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Assign Task to Session</h3>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Link your focus time to a specific task and track progress
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowAssignTaskModal(false)}
+                className="clay-chip p-2 text-slate-400 hover:text-white transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Currently Assigned Task Banner (if any) */}
+            {activeTask && (
+              <div className="mt-4 p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
+                <div className="flex items-center space-x-2.5 min-w-0">
+                  <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider block">
+                      Currently Assigned
+                    </span>
+                    <span className="text-xs font-bold text-white truncate block">
+                      {activeTask.title}
+                    </span>
+                  </div>
+                </div>
+                <button
+                  onClick={handleUnassignTask}
+                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all flex-shrink-0"
+                >
+                  Unassign
+                </button>
+              </div>
+            )}
+
+            {/* Quick Add New Task Section */}
+            <form onSubmit={handleCreateAndAssignTask} className="mt-4 space-y-2.5">
+              <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
+                <span>Create &amp; Assign New Task</span>
+                <span className="text-[10px] text-slate-400 font-normal">Press enter to save</span>
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  placeholder="e.g. Chapter 4 Exercises, Research Paper Draft..."
+                  value={newAssignTaskTitle}
+                  onChange={(e) => setNewAssignTaskTitle(e.target.value)}
+                  className="flex-1 clay-inset rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
+                />
+                <button
+                  type="submit"
+                  disabled={!newAssignTaskTitle.trim()}
+                  className="clay-btn clay-btn-focus px-4 py-2.5 text-xs font-bold flex items-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Assign</span>
+                </button>
+              </div>
+
+              {subjects.length > 0 && (
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-[10px] font-semibold text-slate-400">Subject:</span>
+                  <select
+                    value={newAssignTaskSubjectId}
+                    onChange={(e) => setNewAssignTaskSubjectId(e.target.value)}
+                    className="clay-inset-sm text-[11px] font-semibold text-slate-200 rounded-lg px-2.5 py-1 focus:outline-none focus:border-blue-400 cursor-pointer"
+                  >
+                    <option value="">No Subject</option>
+                    {subjects.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </form>
+
+            {/* Existing Active Tasks List */}
+            <div className="mt-5 flex-1 overflow-y-auto pr-1 space-y-2 max-h-[260px]">
+              <p className="text-xs font-bold text-slate-300 mb-2">Or Choose from Active Tasks</p>
+              {tasks.filter((t) => !t.isCompleted).length === 0 ? (
+                <div className="text-center py-6 clay-inset-sm rounded-2xl">
+                  <p className="text-xs text-slate-400">No active tasks found.</p>
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Type a task above to create your first one!
+                  </p>
+                </div>
+              ) : (
+                tasks
+                  .filter((t) => !t.isCompleted)
+                  .map((task) => {
+                    const isSelected = selectedTaskId === task.id;
+                    return (
+                      <div
+                        key={task.id}
+                        onClick={() => handleAssignTask(task)}
+                        className={`p-3.5 rounded-2xl cursor-pointer transition-all flex items-center justify-between group ${
+                          isSelected
+                            ? 'bg-blue-500/20 border border-blue-400/50 shadow-md shadow-blue-500/20'
+                            : 'clay-inset-sm hover:border-white/[0.15] hover:bg-slate-800/40'
+                        }`}
+                      >
+                        <div className="flex items-center space-x-3 min-w-0">
+                          <div
+                            className={`w-6 h-6 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors ${
+                              isSelected
+                                ? 'bg-blue-500 text-white'
+                                : 'border border-slate-600 group-hover:border-blue-400 text-transparent'
+                            }`}
+                          >
+                            <CheckSquare className="w-3.5 h-3.5" />
+                          </div>
+                          <div className="min-w-0">
+                            <p
+                              className={`text-xs font-bold truncate ${
+                                isSelected ? 'text-white' : 'text-slate-200 group-hover:text-white'
+                              }`}
+                            >
+                              {task.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {task.subject && (
+                                <span
+                                  className="text-[10px] font-semibold px-2 py-0.2 rounded-md"
+                                  style={{
+                                    backgroundColor: `${task.subject.color}20`,
+                                    color: task.subject.color,
+                                  }}
+                                >
+                                  {task.subject.name}
+                                </span>
+                              )}
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {task.completedSessions}/{task.estimatedSessions} sessions
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
+                          {isSelected ? (
+                            <span className="text-[10px] font-bold text-blue-300 bg-blue-500/30 px-2.5 py-1 rounded-lg">
+                              Active
+                            </span>
+                          ) : (
+                            <span className="text-[10px] font-bold text-slate-400 group-hover:text-blue-300 group-hover:bg-blue-500/20 px-2.5 py-1 rounded-lg transition-all">
+                              Select
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="mt-5 pt-4 border-t border-white/[0.08] flex items-center justify-between">
+              <button
+                onClick={() => {
+                  setShowAssignTaskModal(false);
+                  onNavigate('tasks');
+                }}
+                className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition-colors"
+              >
+                <span>Manage All Tasks</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+
+              <button
+                onClick={() => setShowAssignTaskModal(false)}
+                className="clay-chip px-4 py-2 text-xs font-bold text-slate-300 hover:text-white"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -52,6 +52,7 @@ export const updateSessionActionSchema = z.object({
 
 export const completeSessionSchema = z.object({
   actualDuration: z.number().int().min(0).max(7200).optional(),
+  taskId: z.string().nullable().optional(),
 });
 
 export const abandonSessionSchema = z.object({

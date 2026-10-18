@@ -7,7 +7,6 @@ import {
   History,
   Settings,
   LogOut,
-  Globe,
   X,
   Play,
   Pause,
@@ -140,26 +139,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </button>
           );
         })}
-
-        {/* View Landing Page Link */}
-        <button
-          onClick={() => {
-            onNavigate('landing');
-            onCloseMobile();
-          }}
-          className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-2xl text-xs font-semibold transition-all duration-200 ${
-            currentPage === 'landing'
-              ? 'bg-gradient-to-r from-blue-600/20 to-indigo-600/10 text-white border border-blue-500/35 shadow-lg shadow-blue-500/10'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
-          }`}
-        >
-          <div className="flex items-center space-x-3">
-            <div className="p-1.5 rounded-xl text-slate-500">
-              <Globe className="w-4 h-4" />
-            </div>
-            <span>Landing Page</span>
-          </div>
-        </button>
       </nav>
 
       {/* User / Session Footer (Tactile Clay Inset) */}

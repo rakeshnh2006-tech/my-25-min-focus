@@ -16,6 +16,19 @@ export class StreakService {
   }
 
   /**
+   * Returns the previous calendar day string YYYY-MM-DD for a given YYYY-MM-DD string
+   */
+  static getPreviousDateKey(dateKey: string): string {
+    try {
+      const [year, month, day] = dateKey.split('-').map(Number);
+      const d = new Date(Date.UTC(year, month - 1, day - 1));
+      return d.toISOString().split('T')[0];
+    } catch {
+      return dateKey;
+    }
+  }
+
+  /**
    * Calculates current streak and longest streak from completed focus session dates
    */
   static calculateStreaks(
@@ -30,7 +43,9 @@ export class StreakService {
     // Extract unique sorted dates as YYYY-MM-DD
     const uniqueDateSet = new Set<string>();
     for (const d of sessionDates) {
-      uniqueDateSet.add(this.formatDateKey(new Date(d), timezone));
+      if (d) {
+        uniqueDateSet.add(this.formatDateKey(new Date(d), timezone));
+      }
     }
 
     const uniqueDates = Array.from(uniqueDateSet).sort();
@@ -61,29 +76,18 @@ export class StreakService {
 
     // Calculate current streak relative to referenceDate
     const todayStr = this.formatDateKey(referenceDate, timezone);
-    const yesterday = new Date(referenceDate);
-    yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-    const yesterdayStr = this.formatDateKey(yesterday, timezone);
+    const yesterdayStr = this.getPreviousDateKey(todayStr);
 
     let currentStreak = 0;
     const hasToday = uniqueDateSet.has(todayStr);
     const hasYesterday = uniqueDateSet.has(yesterdayStr);
 
     if (hasToday || hasYesterday) {
-      let checkDate = new Date(referenceDate);
-      if (!hasToday) {
-        // Did not study today yet, but streak is active from yesterday
-        checkDate = yesterday;
-      }
+      let checkKey = hasToday ? todayStr : yesterdayStr;
 
-      while (true) {
-        const key = this.formatDateKey(checkDate, timezone);
-        if (uniqueDateSet.has(key)) {
-          currentStreak += 1;
-          checkDate.setUTCDate(checkDate.getUTCDate() - 1);
-        } else {
-          break;
-        }
+      while (uniqueDateSet.has(checkKey)) {
+        currentStreak += 1;
+        checkKey = this.getPreviousDateKey(checkKey);
       }
     }
 

@@ -63,44 +63,47 @@ export async function createSession(req: Request, res: Response) {
   const now = new Date();
   const targetEndAt = new Date(now.getTime() + plannedDuration * 1000);
 
-  // Auto-abandon any lingering active sessions for this user to ensure single-timer integrity
-  const existingActive = await prisma.focusSession.findMany({
-    where: {
-      userId,
-      status: { in: ['RUNNING', 'PAUSED'] },
-    },
-  });
-
-  for (const oldSession of existingActive) {
-    const pauses = TimerService.parsePauseIntervals(oldSession.pauseIntervals);
-    const partialActual = TimerService.calculateActualDuration(oldSession.startedAt, now, pauses);
-    await prisma.focusSession.update({
-      where: { id: oldSession.id },
-      data: {
-        status: 'ABANDONED',
-        endedAt: now,
-        actualDuration: partialActual,
+  // Use interactive transaction to guarantee single-timer integrity and prevent race conditions
+  const newSession = await prisma.$transaction(async (tx) => {
+    // Auto-abandon any lingering active sessions for this user to ensure single-timer integrity
+    const existingActive = await tx.focusSession.findMany({
+      where: {
+        userId,
+        status: { in: ['RUNNING', 'PAUSED'] },
       },
     });
-  }
 
-  const newSession = await prisma.focusSession.create({
-    data: {
-      userId,
-      sessionType,
-      status: 'RUNNING',
-      plannedDuration,
-      actualDuration: 0,
-      startedAt: now,
-      targetEndAt,
-      pauseIntervals: JSON.stringify([]),
-      subjectId: subjectId || null,
-      taskId: taskId || null,
-    },
-    include: {
-      subject: true,
-      task: true,
-    },
+    for (const oldSession of existingActive) {
+      const pauses = TimerService.parsePauseIntervals(oldSession.pauseIntervals);
+      const partialActual = TimerService.calculateActualDuration(oldSession.startedAt, now, pauses);
+      await tx.focusSession.update({
+        where: { id: oldSession.id },
+        data: {
+          status: 'ABANDONED',
+          endedAt: now,
+          actualDuration: partialActual,
+        },
+      });
+    }
+
+    return tx.focusSession.create({
+      data: {
+        userId,
+        sessionType,
+        status: 'RUNNING',
+        plannedDuration,
+        actualDuration: 0,
+        startedAt: now,
+        targetEndAt,
+        pauseIntervals: JSON.stringify([]),
+        subjectId: subjectId || null,
+        taskId: taskId || null,
+      },
+      include: {
+        subject: true,
+        task: true,
+      },
+    });
   });
 
   return res.status(201).json({ session: newSession });
@@ -117,6 +120,14 @@ export async function updateSession(req: Request, res: Response) {
 
   if (!session) {
     return res.status(404).json({ error: 'Session not found' });
+  }
+
+  // Idempotency: no-op if already in desired state
+  if (action === 'PAUSE' && session.status === 'PAUSED') {
+    return res.json({ session });
+  }
+  if (action === 'RESUME' && session.status === 'RUNNING') {
+    return res.json({ session });
   }
 
   if (!TimerService.isValidTransition(session.status, action)) {
@@ -173,52 +184,64 @@ export async function updateSession(req: Request, res: Response) {
 export async function completeSession(req: Request, res: Response) {
   const userId = (req.user as any).id;
   const sessionId = req.params.id;
-
-  const session = await prisma.focusSession.findFirst({
-    where: { id: sessionId, userId },
-  });
-
-  if (!session) {
-    return res.status(404).json({ error: 'Session not found' });
-  }
-
-  // Idempotency: if already completed, return existing session to prevent duplicate completion
-  if (session.status === 'COMPLETED') {
-    return res.json({ session, message: 'Session was already completed' });
-  }
-
-  if (session.status === 'ABANDONED' || session.status === 'SKIPPED') {
-    return res.status(400).json({
-      error: `Cannot complete a session that has been ${session.status.toLowerCase()}`,
-    });
-  }
-
   const { actualDuration: reqActualDuration, taskId: reqTaskId } = req.body || {};
 
   const now = new Date();
-  const pauses = TimerService.parsePauseIntervals(session.pauseIntervals);
 
-  // If session was paused, close the last pause interval before finishing
-  if (session.status === 'PAUSED' && pauses.length > 0 && !pauses[pauses.length - 1].end) {
-    pauses[pauses.length - 1].end = now.toISOString();
-  }
-
-  const calculatedDuration = TimerService.calculateActualDuration(session.startedAt, now, pauses);
-  const actualDuration =
-    typeof reqActualDuration === 'number' && reqActualDuration >= 0
-      ? reqActualDuration
-      : calculatedDuration;
-
-  const effectiveTaskId = reqTaskId !== undefined ? reqTaskId : session.taskId;
-
-  // Execute in transaction: update session, increment task counter if applicable
+  // Execute in transaction: verify status atomically to prevent double-counting
   const result = await prisma.$transaction(async (tx) => {
+    const session = await tx.focusSession.findFirst({
+      where: { id: sessionId, userId },
+      include: { subject: true, task: true },
+    });
+
+    if (!session) {
+      return { status: 404, error: 'Session not found' };
+    }
+
+    // Idempotency: if already completed, return existing session without incrementing task again
+    if (session.status === 'COMPLETED') {
+      return { status: 200, session, alreadyCompleted: true };
+    }
+
+    if (session.status === 'ABANDONED' || session.status === 'SKIPPED') {
+      return {
+        status: 400,
+        error: `Cannot complete a session that has been ${session.status.toLowerCase()}`,
+      };
+    }
+
+    const pauses = TimerService.parsePauseIntervals(session.pauseIntervals);
+
+    // If session was paused, close the last pause interval before finishing
+    if (session.status === 'PAUSED' && pauses.length > 0 && !pauses[pauses.length - 1].end) {
+      pauses[pauses.length - 1].end = now.toISOString();
+    }
+
+    const calculatedDuration = TimerService.calculateActualDuration(session.startedAt, now, pauses);
+    let actualDuration =
+      typeof reqActualDuration === 'number' && reqActualDuration >= 0
+        ? reqActualDuration
+        : calculatedDuration;
+
+    // Cap duration safely:
+    // If plannedDuration > 0, cap at maximum of plannedDuration + 600 or plannedDuration * 2
+    // If plannedDuration === 0 (Stopwatch), do not clamp to 300s!
+    if (session.plannedDuration > 0) {
+      const maxAllowed = Math.max(session.plannedDuration + 600, session.plannedDuration * 2);
+      actualDuration = Math.min(actualDuration, maxAllowed);
+    } else {
+      actualDuration = Math.max(1, actualDuration);
+    }
+
+    const effectiveTaskId = reqTaskId !== undefined ? reqTaskId : session.taskId;
+
     const completedSession = await tx.focusSession.update({
       where: { id: sessionId },
       data: {
         status: 'COMPLETED',
         endedAt: now,
-        actualDuration: Math.min(actualDuration, session.plannedDuration + 300), // Cap at planned duration + small buffer
+        actualDuration,
         pauseIntervals: JSON.stringify(pauses),
         ...(effectiveTaskId !== undefined ? { taskId: effectiveTaskId } : {}),
       },
@@ -237,10 +260,18 @@ export async function completeSession(req: Request, res: Response) {
       });
     }
 
-    return completedSession;
+    return { status: 200, session: completedSession, alreadyCompleted: false };
   });
 
-  return res.json({ session: result });
+  if (result.status !== 200) {
+    return res.status(result.status).json({ error: result.error });
+  }
+
+  if (result.alreadyCompleted) {
+    return res.json({ session: result.session, message: 'Session was already completed' });
+  }
+
+  return res.json({ session: result.session });
 }
 
 export async function abandonSession(req: Request, res: Response) {
@@ -257,6 +288,10 @@ export async function abandonSession(req: Request, res: Response) {
 
   if (session.status === 'COMPLETED') {
     return res.status(400).json({ error: 'Cannot abandon an already completed session' });
+  }
+
+  if (session.status === 'ABANDONED') {
+    return res.json({ session, message: 'Session was already abandoned' });
   }
 
   const now = new Date();

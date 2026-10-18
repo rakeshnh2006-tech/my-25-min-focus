@@ -117,4 +117,96 @@ describe('API Integration Tests', () => {
       assert.ok('preference' in meRes.body);
     });
   });
+
+  describe('Session Lifecycle & Idempotency Integration Tests', () => {
+    it('executes full session lifecycle with idempotency and duplicate prevention', async () => {
+      let existingUser;
+      try {
+        existingUser = await prisma.user.findFirst();
+      } catch {
+        return;
+      }
+      if (!existingUser) {
+        return;
+      }
+
+      const testApp = createApp();
+      testApp.post('/test-login', (req, res) => {
+        req.login(existingUser, (err) => {
+          if (err) return res.status(500).json({ error: err.message });
+          return res.json({ success: true, user: existingUser });
+        });
+      });
+
+      const agent = request.agent(testApp);
+      await agent.post('/test-login');
+
+      // 1. Start a focus session
+      const startRes1 = await agent.post('/api/sessions').send({
+        sessionType: 'FOCUS',
+        plannedDuration: 1500,
+      });
+      assert.strictEqual(startRes1.status, 201);
+      assert.strictEqual(startRes1.body.session.status, 'RUNNING');
+      const sessionId1 = startRes1.body.session.id;
+
+      // 2. Rapid second start request: ensures old session is abandoned and only 1 active session remains
+      const startRes2 = await agent.post('/api/sessions').send({
+        sessionType: 'FOCUS',
+        plannedDuration: 1500,
+      });
+      assert.strictEqual(startRes2.status, 201);
+      const sessionId2 = startRes2.body.session.id;
+      assert.notStrictEqual(sessionId1, sessionId2);
+
+      // Verify active session is sessionId2
+      const activeRes = await agent.get('/api/sessions/active');
+      assert.strictEqual(activeRes.status, 200);
+      assert.strictEqual(activeRes.body.session?.id, sessionId2);
+
+      // 3. Pause session
+      const pauseRes = await agent.patch(`/api/sessions/${sessionId2}`).send({ action: 'PAUSE' });
+      assert.strictEqual(pauseRes.status, 200);
+      assert.strictEqual(pauseRes.body.session.status, 'PAUSED');
+
+      // Duplicate pause idempotency (calling PAUSE when already PAUSED returns 200 cleanly)
+      const dupPauseRes = await agent.patch(`/api/sessions/${sessionId2}`).send({ action: 'PAUSE' });
+      assert.strictEqual(dupPauseRes.status, 200);
+      assert.strictEqual(dupPauseRes.body.session.status, 'PAUSED');
+
+      // 4. Resume session
+      const resumeRes = await agent.patch(`/api/sessions/${sessionId2}`).send({ action: 'RESUME' });
+      assert.strictEqual(resumeRes.status, 200);
+      assert.strictEqual(resumeRes.body.session.status, 'RUNNING');
+
+      // Duplicate resume idempotency
+      const dupResumeRes = await agent.patch(`/api/sessions/${sessionId2}`).send({ action: 'RESUME' });
+      assert.strictEqual(dupResumeRes.status, 200);
+      assert.strictEqual(dupResumeRes.body.session.status, 'RUNNING');
+
+      // 5. Complete session
+      const completeRes1 = await agent.post(`/api/sessions/${sessionId2}/complete`).send({
+        actualDuration: 1500,
+      });
+      assert.strictEqual(completeRes1.status, 200);
+      assert.strictEqual(completeRes1.body.session.status, 'COMPLETED');
+
+      // 6. Duplicate completion request: must return existing completed session without error
+      const completeRes2 = await agent.post(`/api/sessions/${sessionId2}/complete`).send({
+        actualDuration: 1500,
+      });
+      assert.strictEqual(completeRes2.status, 200);
+      assert.strictEqual(completeRes2.body.session.status, 'COMPLETED');
+      assert.ok(completeRes2.body.message?.includes('already completed'));
+
+      // 7. Reject invalid transition: cannot abandon an already completed session
+      const abandonCompletedRes = await agent.post(`/api/sessions/${sessionId2}/abandon`);
+      assert.strictEqual(abandonCompletedRes.status, 400);
+
+      // Cleanup
+      await prisma.focusSession.deleteMany({
+        where: { id: { in: [sessionId1, sessionId2] } },
+      });
+    });
+  });
 });

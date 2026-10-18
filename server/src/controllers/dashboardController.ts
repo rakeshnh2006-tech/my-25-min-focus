@@ -13,13 +13,13 @@ export async function getDashboardSummary(req: Request, res: Response) {
   const dailyGoalMinutes = preference?.dailyGoalMinutes || 120;
   const timezone = preference?.timezone || 'UTC';
 
-  // Determine start and end of today in user's timezone
   const now = new Date();
   const todayKey = StreakService.formatDateKey(now, timezone);
-  const endOfToday = new Date(`${todayKey}T23:59:59.999Z`);
 
-  // Safely query recent completed focus sessions around today
-  const candidateStart = new Date(now.getTime() - 36 * 60 * 60 * 1000);
+  // Timezone-safe candidate query window (covers +/- 48h to account for UTC-12 to UTC+14)
+  const candidateStart = new Date(now.getTime() - 48 * 60 * 60 * 1000);
+  const candidateEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
   const candidateSessions = await prisma.focusSession.findMany({
     where: {
       userId,
@@ -27,6 +27,7 @@ export async function getDashboardSummary(req: Request, res: Response) {
       sessionType: 'FOCUS',
       startedAt: {
         gte: candidateStart,
+        lte: candidateEnd,
       },
     },
     select: {
@@ -68,14 +69,11 @@ export async function getDashboardSummary(req: Request, res: Response) {
     now
   );
 
-  // Query active tasks due today or overdue
-  const tasksDueToday = await prisma.studyTask.findMany({
+  // Query active tasks due today or overdue in user's timezone
+  const activeTasks = await prisma.studyTask.findMany({
     where: {
       userId,
       isCompleted: false,
-      dueDate: {
-        lte: endOfToday,
-      },
     },
     include: {
       subject: {
@@ -87,8 +85,16 @@ export async function getDashboardSummary(req: Request, res: Response) {
       },
     },
     orderBy: [{ priority: 'desc' }, { dueDate: 'asc' }],
-    take: 5,
   });
+
+  // Filter in application code to guarantee timezone correctness
+  const tasksDueToday = activeTasks
+    .filter((t) => {
+      if (!t.dueDate) return false;
+      const taskDueKey = StreakService.formatDateKey(t.dueDate, timezone);
+      return taskDueKey <= todayKey;
+    })
+    .slice(0, 5);
 
   // Query recently completed sessions
   const recentSessions = await prisma.focusSession.findMany({
@@ -124,6 +130,7 @@ export async function getDashboardSummary(req: Request, res: Response) {
         weekday: 'long',
         month: 'short',
         day: 'numeric',
+        timeZone: timezone,
       }).format(now),
       focusedMinutes: todayFocusedMinutes,
       completedPomodoros: completedPomodorosToday,
@@ -144,25 +151,32 @@ export async function getWeeklyStats(req: Request, res: Response) {
   });
   const timezone = preference?.timezone || 'UTC';
 
-  // Build the last 7 calendar days array
-  const days: { date: string; day: string; minutes: number; sessions: number }[] = [];
+  // Build the last 7 calendar days array using deterministic previous date keys
   const now = new Date();
+  const todayKey = StreakService.formatDateKey(now, timezone);
 
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(now);
-    d.setUTCDate(d.getUTCDate() - i);
-    const dateKey = StreakService.formatDateKey(d, timezone);
-    const dayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: timezone }).format(d);
-    days.push({
-      date: dateKey,
+  const dateKeys: string[] = [];
+  let currentKey = todayKey;
+  for (let i = 0; i < 7; i++) {
+    dateKeys.unshift(currentKey);
+    currentKey = StreakService.getPreviousDateKey(currentKey);
+  }
+
+  // dateKeys is sorted oldest to newest (last 7 days ending with today)
+  const days = dateKeys.map((key) => {
+    const [y, m, d] = key.split('-').map(Number);
+    const dateObj = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+    const dayLabel = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'UTC' }).format(dateObj);
+    return {
+      date: key,
       day: dayLabel,
       minutes: 0,
       sessions: 0,
-    });
-  }
+    };
+  });
 
-  const startDate = new Date(`${days[0].date}T00:00:00Z`);
-  const endDate = new Date(`${days[days.length - 1].date}T23:59:59.999Z`);
+  const startDate = new Date(now.getTime() - 10 * 24 * 60 * 60 * 1000);
+  const endDate = new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000);
 
   const sessions = await prisma.focusSession.findMany({
     where: {

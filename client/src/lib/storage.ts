@@ -6,7 +6,27 @@ const STORAGE_KEYS = {
   SESSIONS: 'cognify_sessions',
   PREFERENCES: 'cognify_preferences',
   ACTIVE_SESSION: 'cognify_active_session',
+  ACTIVE_TIMER_STATE: 'cognify_active_timer_state',
 };
+
+export interface ActiveTimerSnapshot {
+  sessionId?: string | null;
+  mode: 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK' | 'STOPWATCH';
+  status: 'IDLE' | 'RUNNING' | 'PAUSED' | 'COMPLETED' | 'ABANDONED';
+  totalDuration: number;
+  secondsRemaining: number;
+  targetEndMs: number | null;
+  pauseStartMs: number | null;
+  remainingAtPause: number | null;
+  stopwatchStartMs: number | null;
+  startedAtMs: number;
+  totalPausedMs: number;
+  selectedSubjectId: string | null;
+  selectedTaskId: string | null;
+  cycleCount: number;
+  activePreset: TimerPreset;
+  updatedAtMs: number;
+}
 
 // --- TIMEZONE-AWARE DATE HELPERS ---
 export function formatDateInTimezone(dateInput: Date | string, timezone: string = 'UTC'): string {
@@ -262,21 +282,72 @@ export const LocalStorageRepository = {
     return [];
   },
 
+  // --- ACTIVE TIMER SNAPSHOT (PAGE REFRESH & BACKGROUND RECOVERY) ---
+  getActiveTimerSnapshot(): ActiveTimerSnapshot | null {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.ACTIVE_TIMER_STATE);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  },
+
+  saveActiveTimerSnapshot(snapshot: ActiveTimerSnapshot): void {
+    try {
+      localStorage.setItem(STORAGE_KEYS.ACTIVE_TIMER_STATE, JSON.stringify(snapshot));
+    } catch {
+      // ignore
+    }
+  },
+
+  clearActiveTimerSnapshot(): void {
+    try {
+      localStorage.removeItem(STORAGE_KEYS.ACTIVE_TIMER_STATE);
+    } catch {
+      // ignore
+    }
+  },
+
   recordCompletedSession(
     sessionType: 'FOCUS' | 'SHORT_BREAK' | 'LONG_BREAK',
     durationSeconds: number,
     subjectId?: string | null,
-    taskId?: string | null
+    taskId?: string | null,
+    customId?: string
   ): FocusSession {
     const sessions = this.getSessions();
     const subjects = this.getSubjects();
     const tasks = this.getTasks();
 
+    // Deduplication by custom ID
+    if (customId) {
+      const existing = sessions.find((s) => s.id === customId);
+      if (existing) return existing;
+    }
+
+    // Deduplication by time window (within last 3 seconds with identical session parameters)
+    const nowMs = Date.now();
+    const duplicate = sessions.find((s) => {
+      if (s.sessionType !== sessionType) return false;
+      if (s.subjectId !== (subjectId || null)) return false;
+      if (s.taskId !== (taskId || null)) return false;
+      const dateStr = s.endedAt || s.createdAt;
+      const sessionEndedMs = dateStr ? new Date(dateStr).getTime() : 0;
+      return Math.abs(sessionEndedMs - nowMs) < 3000;
+    });
+
+    if (duplicate) {
+      return duplicate;
+    }
+
     const subject = subjects.find((s) => s.id === subjectId);
     const task = tasks.find((t) => t.id === taskId);
 
     const newSession: FocusSession = {
-      id: `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      id: customId || `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
       userId: 'user',
       sessionType,
       status: 'COMPLETED',

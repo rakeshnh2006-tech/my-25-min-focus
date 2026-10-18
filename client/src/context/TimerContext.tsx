@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useRef, useCallb
 import { SessionType, TimerMode, SessionStatus, FocusSession, TimerPreset } from '../types';
 import { apiRequest } from '../lib/api';
 import { soundManager } from '../lib/sound';
-import { LocalStorageRepository } from '../lib/storage';
+import { LocalStorageRepository, ActiveTimerSnapshot } from '../lib/storage';
 import { useAuth } from './AuthContext';
 
 interface TimerContextType {
@@ -57,20 +57,69 @@ const PRESET_DURATIONS: Record<TimerPreset, { focus: number; shortBreak: number;
 export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, preference, updatePreferences } = useAuth();
 
-  const [mode, setMode] = useState<TimerMode>('FOCUS');
-  const [status, setStatus] = useState<SessionStatus>('IDLE');
-  const [activePreset, setActivePreset] = useState<TimerPreset>(preference?.activePreset || '25/5');
+  // Load saved snapshot on initialization if page was refreshed
+  const initialSnapshot = useRef<ActiveTimerSnapshot | null>(
+    typeof window !== 'undefined' ? LocalStorageRepository.getActiveTimerSnapshot() : null
+  ).current;
+
+  const [activePreset, setActivePreset] = useState<TimerPreset>(() => {
+    if (initialSnapshot?.activePreset) return initialSnapshot.activePreset;
+    return preference?.activePreset || '25/5';
+  });
+
+  const currentDurations = PRESET_DURATIONS[activePreset] || PRESET_DURATIONS['25/5'];
+  const focusDurationSecs = (preference?.focusDuration || currentDurations.focus) * 60;
+  const shortBreakDurationSecs = (preference?.shortBreakDuration || currentDurations.shortBreak) * 60;
+  const longBreakDurationSecs = (preference?.longBreakDuration || currentDurations.longBreak) * 60;
+  const longBreakInterval = preference?.longBreakInterval || 4;
+
+  const getDefaultDurationForMode = useCallback(
+    (m: TimerMode) => {
+      if (m === 'FOCUS') return focusDurationSecs;
+      if (m === 'SHORT_BREAK') return shortBreakDurationSecs;
+      if (m === 'LONG_BREAK') return longBreakDurationSecs;
+      return 0;
+    },
+    [focusDurationSecs, shortBreakDurationSecs, longBreakDurationSecs]
+  );
+
+  const [mode, setMode] = useState<TimerMode>(() => initialSnapshot?.mode || 'FOCUS');
+
+  const [status, setStatus] = useState<SessionStatus>(() => {
+    if (!initialSnapshot) return 'IDLE';
+    if (initialSnapshot.status === 'RUNNING') {
+      if (initialSnapshot.mode === 'STOPWATCH') return 'RUNNING';
+      if (initialSnapshot.targetEndMs && initialSnapshot.targetEndMs <= Date.now()) {
+        return 'COMPLETED';
+      }
+      return 'RUNNING';
+    }
+    if (initialSnapshot.status === 'PAUSED') return 'PAUSED';
+    return 'IDLE';
+  });
+
   const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(
+    () => initialSnapshot?.selectedSubjectId || null
+  );
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(
+    () => initialSnapshot?.selectedTaskId || null
+  );
 
-  const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
-  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-
-  const [cycleCount, setCycleCount] = useState<number>(1);
+  const [cycleCount, setCycleCount] = useState<number>(() => initialSnapshot?.cycleCount || 1);
   const [showCompletionModal, setShowCompletionModal] = useState<boolean>(false);
   const [lastCompletedMode, setLastCompletedMode] = useState<TimerMode | null>(null);
 
   // Stopwatch state
-  const [stopwatchElapsedSeconds, setStopwatchElapsedSeconds] = useState<number>(0);
+  const [stopwatchElapsedSeconds, setStopwatchElapsedSeconds] = useState<number>(() => {
+    if (initialSnapshot?.mode === 'STOPWATCH' && initialSnapshot.stopwatchStartMs) {
+      return Math.max(
+        0,
+        Math.floor((Date.now() - initialSnapshot.stopwatchStartMs - (initialSnapshot.totalPausedMs || 0)) / 1000)
+      );
+    }
+    return 0;
+  });
 
   // Ambient rain sound state
   const [isRainPlaying, setIsRainPlaying] = useState<boolean>(false);
@@ -81,47 +130,145 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const pipVideoRef = useRef<HTMLVideoElement | null>(null);
 
-  // Preset or preference derived durations (in seconds)
-  const currentDurations = PRESET_DURATIONS[activePreset] || PRESET_DURATIONS['25/5'];
-  const focusDurationSecs = (preference?.focusDuration || currentDurations.focus) * 60;
-  const shortBreakDurationSecs = (preference?.shortBreakDuration || currentDurations.shortBreak) * 60;
-  const longBreakDurationSecs = (preference?.longBreakDuration || currentDurations.longBreak) * 60;
-  const longBreakInterval = preference?.longBreakInterval || 4;
+  const [totalDuration, setTotalDuration] = useState<number>(() => {
+    if (initialSnapshot?.totalDuration) return initialSnapshot.totalDuration;
+    return focusDurationSecs;
+  });
 
-  const [totalDuration, setTotalDuration] = useState<number>(focusDurationSecs);
-  const [secondsRemaining, setSecondsRemaining] = useState<number>(focusDurationSecs);
+  const [secondsRemaining, setSecondsRemaining] = useState<number>(() => {
+    if (!initialSnapshot) return focusDurationSecs;
+    if (initialSnapshot.status === 'RUNNING') {
+      if (initialSnapshot.mode === 'STOPWATCH') {
+        return Math.max(
+          0,
+          Math.floor((Date.now() - (initialSnapshot.stopwatchStartMs || Date.now()) - (initialSnapshot.totalPausedMs || 0)) / 1000)
+        );
+      }
+      if (initialSnapshot.targetEndMs) {
+        return Math.max(0, Math.ceil((initialSnapshot.targetEndMs - Date.now()) / 1000));
+      }
+    }
+    if (initialSnapshot.status === 'PAUSED') {
+      return initialSnapshot.remainingAtPause ?? initialSnapshot.secondsRemaining ?? focusDurationSecs;
+    }
+    return focusDurationSecs;
+  });
 
   const [soundEnabled, setSoundEnabledState] = useState<boolean>(preference?.soundEnabled ?? true);
   const [notificationsEnabled, setNotificationsEnabledState] = useState<boolean>(
     preference?.notificationsEnabled ?? false
   );
 
+  // Wall clock references
+  const targetEndRef = useRef<number | null>(
+    initialSnapshot?.status === 'RUNNING' && initialSnapshot.targetEndMs ? initialSnapshot.targetEndMs : null
+  );
+  const pauseStartRef = useRef<number | null>(
+    initialSnapshot?.status === 'PAUSED' && initialSnapshot.pauseStartMs ? initialSnapshot.pauseStartMs : null
+  );
+  const stopwatchStartRef = useRef<number | null>(
+    initialSnapshot?.mode === 'STOPWATCH' && initialSnapshot.stopwatchStartMs
+      ? initialSnapshot.stopwatchStartMs
+      : null
+  );
+  const startedAtMsRef = useRef<number>(initialSnapshot?.startedAtMs || Date.now());
+  const totalPausedMsRef = useRef<number>(initialSnapshot?.totalPausedMs || 0);
+
+  const intervalIdRef = useRef<any>(null);
+  const isCompletingRef = useRef<boolean>(false);
+  const isActionInProgressRef = useRef<boolean>(false);
+
   // Sync preference updates to timer defaults when idle
   useEffect(() => {
     if (status === 'IDLE') {
-      if (mode === 'FOCUS') {
-        setTotalDuration(focusDurationSecs);
-        setSecondsRemaining(focusDurationSecs);
-      } else if (mode === 'SHORT_BREAK') {
-        setTotalDuration(shortBreakDurationSecs);
-        setSecondsRemaining(shortBreakDurationSecs);
-      } else if (mode === 'LONG_BREAK') {
-        setTotalDuration(longBreakDurationSecs);
-        setSecondsRemaining(longBreakDurationSecs);
-      } else if (mode === 'STOPWATCH') {
-        setTotalDuration(0);
-        setSecondsRemaining(0);
-      }
+      const dur = getDefaultDurationForMode(mode);
+      setTotalDuration(dur);
+      setSecondsRemaining(dur);
     }
-  }, [mode, status, focusDurationSecs, shortBreakDurationSecs, longBreakDurationSecs, activePreset]);
+  }, [mode, status, getDefaultDurationForMode]);
 
-  // Wall clock calculation references
-  const targetEndRef = useRef<number | null>(null);
-  const pauseStartRef = useRef<number | null>(null);
-  const intervalIdRef = useRef<any>(null);
-  const stopwatchStartRef = useRef<number | null>(null);
+  // Persist active timer snapshot to LocalStorage for tab refresh / browser recovery
+  useEffect(() => {
+    if (status === 'RUNNING' || status === 'PAUSED') {
+      LocalStorageRepository.saveActiveTimerSnapshot({
+        sessionId: activeSession?.id || null,
+        mode,
+        status,
+        totalDuration,
+        secondsRemaining,
+        targetEndMs: targetEndRef.current,
+        pauseStartMs: pauseStartRef.current,
+        remainingAtPause: status === 'PAUSED' ? secondsRemaining : null,
+        stopwatchStartMs: stopwatchStartRef.current,
+        startedAtMs: startedAtMsRef.current,
+        totalPausedMs: totalPausedMsRef.current,
+        selectedSubjectId,
+        selectedTaskId,
+        cycleCount,
+        activePreset,
+        updatedAtMs: Date.now(),
+      });
+    } else {
+      LocalStorageRepository.clearActiveTimerSnapshot();
+    }
+  }, [
+    status,
+    mode,
+    totalDuration,
+    secondsRemaining,
+    selectedSubjectId,
+    selectedTaskId,
+    cycleCount,
+    activePreset,
+    activeSession?.id,
+  ]);
 
-  // Browser Tab Countdown Synchronization
+  // Synchronize with server active session on login / mount
+  useEffect(() => {
+    if (!user) return;
+    let isCancelled = false;
+
+    apiRequest<{ session: FocusSession | null }>('/api/sessions/active')
+      .then((data) => {
+        if (isCancelled || !data?.session) return;
+        const serverSession = data.session;
+        setActiveSession(serverSession);
+
+        // If local status is IDLE, hydrate from server active session
+        if (status === 'IDLE') {
+          if (serverSession.status === 'RUNNING' && serverSession.targetEndAt) {
+            const endMs = new Date(serverSession.targetEndAt).getTime();
+            const now = Date.now();
+            if (endMs <= now) {
+              // Server session completed while user was away
+              apiRequest(`/api/sessions/${serverSession.id}/complete`, {
+                method: 'POST',
+                body: JSON.stringify({ actualDuration: serverSession.plannedDuration }),
+              }).catch(() => {});
+            } else {
+              setMode(serverSession.sessionType as TimerMode);
+              setTotalDuration(serverSession.plannedDuration);
+              const remaining = Math.max(0, Math.ceil((endMs - now) / 1000));
+              setSecondsRemaining(remaining);
+              targetEndRef.current = endMs;
+              startedAtMsRef.current = new Date(serverSession.startedAt).getTime();
+              setStatus('RUNNING');
+            }
+          } else if (serverSession.status === 'PAUSED') {
+            setMode(serverSession.sessionType as TimerMode);
+            setTotalDuration(serverSession.plannedDuration);
+            setStatus('PAUSED');
+          }
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [user]);
+
+  // Browser Tab Countdown Title Synchronization
   useEffect(() => {
     if (typeof document === 'undefined') return;
     if (status === 'RUNNING' || status === 'PAUSED') {
@@ -198,9 +345,16 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
   };
 
-  // Complete session handler
+  // Complete session handler (Atomic execution, exactly once)
   const handleSessionComplete = useCallback(async () => {
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+    targetEndRef.current = null;
+    pauseStartRef.current = null;
+    LocalStorageRepository.clearActiveTimerSnapshot();
+
     setStatus('COMPLETED');
     setSecondsRemaining(0);
     setLastCompletedMode(mode);
@@ -230,14 +384,17 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
-    // Save session completion (Unified offline & cloud)
+    // Save session completion (Unified offline & cloud) with deduplication
     const duration = totalDuration;
+    const currentSessionId = activeSession?.id;
+
     if (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK') {
       LocalStorageRepository.recordCompletedSession(
         mode as SessionType,
         duration,
         selectedSubjectId,
-        selectedTaskId
+        selectedTaskId,
+        currentSessionId
       );
     }
 
@@ -252,19 +409,36 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
     }
 
+    setActiveSession(null);
+
     // Update cycle counts if Focus completed
     if (mode === 'FOCUS') {
       setCycleCount((prev) => (prev >= longBreakInterval ? 1 : prev + 1));
     }
 
     setShowCompletionModal(true);
-  }, [mode, activeSession, totalDuration, selectedSubjectId, selectedTaskId, user, soundEnabled, notificationsEnabled, longBreakInterval]);
+    isCompletingRef.current = false;
+  }, [
+    mode,
+    activeSession,
+    totalDuration,
+    selectedSubjectId,
+    selectedTaskId,
+    user,
+    soundEnabled,
+    notificationsEnabled,
+    longBreakInterval,
+  ]);
 
-  // Tick calculation based on wall clock
+  // Tick calculation based strictly on authoritative wall clock
   const updateTick = useCallback(() => {
     if (mode === 'STOPWATCH') {
       if (!stopwatchStartRef.current) return;
-      const elapsed = Math.floor((Date.now() - stopwatchStartRef.current) / 1000);
+      const now = Date.now();
+      const elapsed = Math.max(
+        0,
+        Math.floor((now - stopwatchStartRef.current - totalPausedMsRef.current) / 1000)
+      );
       setStopwatchElapsedSeconds(elapsed);
       setSecondsRemaining(elapsed);
       return;
@@ -275,20 +449,49 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const remaining = Math.max(0, Math.ceil((targetEndRef.current - now) / 1000));
     setSecondsRemaining(remaining);
 
+    // Guard against negative countdown and duplicate completion triggers
     if (remaining <= 0) {
+      if (isCompletingRef.current) return;
+      isCompletingRef.current = true;
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
+      targetEndRef.current = null;
       handleSessionComplete();
     }
   }, [mode, handleSessionComplete]);
 
-  // Tab visibility change recovery
+  // Handle page load recovery if timer reached zero while tab was closed/reloaded
   useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && status === 'RUNNING') {
+    if (
+      initialSnapshot?.status === 'RUNNING' &&
+      initialSnapshot.mode !== 'STOPWATCH' &&
+      initialSnapshot.targetEndMs &&
+      initialSnapshot.targetEndMs <= Date.now()
+    ) {
+      if (!isCompletingRef.current) {
+        isCompletingRef.current = true;
+        handleSessionComplete();
+      }
+    }
+  }, [initialSnapshot, handleSessionComplete]);
+
+  // Tab visibility, focus, and device wake-up synchronization
+  useEffect(() => {
+    const handleSync = () => {
+      if (status === 'RUNNING') {
         updateTick();
       }
     };
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    document.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+    window.addEventListener('pageshow', handleSync);
+    return () => {
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+      window.removeEventListener('pageshow', handleSync);
+    };
   }, [status, updateTick]);
 
   // Running interval
@@ -296,129 +499,229 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (status === 'RUNNING') {
       intervalIdRef.current = setInterval(updateTick, 250);
     } else {
-      if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
     }
     return () => {
-      if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
+      }
     };
   }, [status, updateTick]);
 
   // Timer controls
   const startTimer = async () => {
-    soundManager.playTick();
-    const duration =
-      mode === 'FOCUS'
-        ? focusDurationSecs
-        : mode === 'SHORT_BREAK'
-        ? shortBreakDurationSecs
-        : mode === 'LONG_BREAK'
-        ? longBreakDurationSecs
-        : 0;
+    if (isActionInProgressRef.current || status === 'RUNNING') return;
+    isActionInProgressRef.current = true;
 
-    setTotalDuration(duration);
-    setSecondsRemaining(duration);
+    try {
+      soundManager.playTick();
+      const duration = getDefaultDurationForMode(mode);
 
-    const now = Date.now();
+      setTotalDuration(duration);
+      setSecondsRemaining(duration);
 
-    if (mode === 'STOPWATCH') {
-      stopwatchStartRef.current = now;
-      setStopwatchElapsedSeconds(0);
-      setStatus('RUNNING');
-      return;
-    }
+      const now = Date.now();
+      startedAtMsRef.current = now;
+      totalPausedMsRef.current = 0;
+      pauseStartRef.current = null;
 
-    targetEndRef.current = now + duration * 1000;
-    setStatus('RUNNING');
-
-    // Cloud session creation if authenticated
-    if (user && (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK')) {
-      try {
-        const data = await apiRequest<{ session: FocusSession }>('/api/sessions', {
-          method: 'POST',
-          body: JSON.stringify({
-            sessionType: mode,
-            plannedDuration: duration,
-            subjectId: selectedSubjectId || undefined,
-            taskId: selectedTaskId || undefined,
-          }),
-        });
-        setActiveSession(data.session);
-      } catch (err) {
-        console.warn('Could not record session initiation on cloud API:', err);
+      if (mode === 'STOPWATCH') {
+        stopwatchStartRef.current = now;
+        setStopwatchElapsedSeconds(0);
+        setStatus('RUNNING');
+      } else {
+        targetEndRef.current = now + duration * 1000;
+        setStatus('RUNNING');
       }
+
+      // Save initial snapshot immediately
+      LocalStorageRepository.saveActiveTimerSnapshot({
+        sessionId: null,
+        mode,
+        status: 'RUNNING',
+        totalDuration: duration,
+        secondsRemaining: duration,
+        targetEndMs: targetEndRef.current,
+        pauseStartMs: null,
+        remainingAtPause: null,
+        stopwatchStartMs: stopwatchStartRef.current,
+        startedAtMs: now,
+        totalPausedMs: 0,
+        selectedSubjectId,
+        selectedTaskId,
+        cycleCount,
+        activePreset,
+        updatedAtMs: now,
+      });
+
+      // Cloud session creation if authenticated
+      if (user && (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK')) {
+        try {
+          const data = await apiRequest<{ session: FocusSession }>('/api/sessions', {
+            method: 'POST',
+            body: JSON.stringify({
+              sessionType: mode,
+              plannedDuration: duration,
+              subjectId: selectedSubjectId || undefined,
+              taskId: selectedTaskId || undefined,
+            }),
+          });
+          setActiveSession(data.session);
+          // Update snapshot with authoritative session ID
+          LocalStorageRepository.saveActiveTimerSnapshot({
+            sessionId: data.session.id,
+            mode,
+            status: 'RUNNING',
+            totalDuration: duration,
+            secondsRemaining: duration,
+            targetEndMs: targetEndRef.current,
+            pauseStartMs: null,
+            remainingAtPause: null,
+            stopwatchStartMs: stopwatchStartRef.current,
+            startedAtMs: now,
+            totalPausedMs: 0,
+            selectedSubjectId,
+            selectedTaskId,
+            cycleCount,
+            activePreset,
+            updatedAtMs: Date.now(),
+          });
+        } catch (err) {
+          console.warn('Could not record session initiation on cloud API:', err);
+        }
+      }
+    } finally {
+      isActionInProgressRef.current = false;
     }
   };
 
   const pauseTimer = async () => {
-    soundManager.playTick();
-    if (status !== 'RUNNING') return;
-    setStatus('PAUSED');
-    pauseStartRef.current = Date.now();
+    if (isActionInProgressRef.current || status !== 'RUNNING') return;
+    isActionInProgressRef.current = true;
 
-    if (activeSession && user) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ action: 'PAUSE' }),
-        });
-      } catch (err) {
-        console.warn('Could not update pause on cloud server:', err);
+    try {
+      soundManager.playTick();
+      const now = Date.now();
+      pauseStartRef.current = now;
+      setStatus('PAUSED');
+
+      // Persist pause snapshot immediately
+      LocalStorageRepository.saveActiveTimerSnapshot({
+        sessionId: activeSession?.id || null,
+        mode,
+        status: 'PAUSED',
+        totalDuration,
+        secondsRemaining,
+        targetEndMs: targetEndRef.current,
+        pauseStartMs: now,
+        remainingAtPause: secondsRemaining,
+        stopwatchStartMs: stopwatchStartRef.current,
+        startedAtMs: startedAtMsRef.current,
+        totalPausedMs: totalPausedMsRef.current,
+        selectedSubjectId,
+        selectedTaskId,
+        cycleCount,
+        activePreset,
+        updatedAtMs: now,
+      });
+
+      if (activeSession && user) {
+        try {
+          await apiRequest(`/api/sessions/${activeSession.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ action: 'PAUSE' }),
+          });
+        } catch (err) {
+          console.warn('Could not update pause on cloud server:', err);
+        }
       }
+    } finally {
+      isActionInProgressRef.current = false;
     }
   };
 
   const resumeTimer = async () => {
-    soundManager.playTick();
-    if (status !== 'PAUSED') return;
+    if (isActionInProgressRef.current || status !== 'PAUSED') return;
+    isActionInProgressRef.current = true;
 
-    const now = Date.now();
-    if (mode === 'STOPWATCH') {
-      if (pauseStartRef.current && stopwatchStartRef.current) {
-        const pausedMs = now - pauseStartRef.current;
-        stopwatchStartRef.current += pausedMs;
+    try {
+      soundManager.playTick();
+      const now = Date.now();
+
+      if (mode === 'STOPWATCH') {
+        if (pauseStartRef.current && stopwatchStartRef.current) {
+          const pausedMs = now - pauseStartRef.current;
+          totalPausedMsRef.current += pausedMs;
+          stopwatchStartRef.current += pausedMs;
+        }
+        pauseStartRef.current = null;
+        setStatus('RUNNING');
+      } else {
+        if (pauseStartRef.current) {
+          const pauseDuration = now - pauseStartRef.current;
+          totalPausedMsRef.current += pauseDuration;
+        }
+        // Authoritative new target end derived from remaining seconds
+        targetEndRef.current = now + secondsRemaining * 1000;
+        pauseStartRef.current = null;
+        setStatus('RUNNING');
       }
-      setStatus('RUNNING');
-      return;
-    }
 
-    if (pauseStartRef.current && targetEndRef.current) {
-      const pauseDuration = now - pauseStartRef.current;
-      targetEndRef.current += pauseDuration;
-    }
-    pauseStartRef.current = null;
-    setStatus('RUNNING');
+      // Update snapshot immediately
+      LocalStorageRepository.saveActiveTimerSnapshot({
+        sessionId: activeSession?.id || null,
+        mode,
+        status: 'RUNNING',
+        totalDuration,
+        secondsRemaining,
+        targetEndMs: targetEndRef.current,
+        pauseStartMs: null,
+        remainingAtPause: null,
+        stopwatchStartMs: stopwatchStartRef.current,
+        startedAtMs: startedAtMsRef.current,
+        totalPausedMs: totalPausedMsRef.current,
+        selectedSubjectId,
+        selectedTaskId,
+        cycleCount,
+        activePreset,
+        updatedAtMs: now,
+      });
 
-    if (activeSession && user) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify({ action: 'RESUME' }),
-        });
-      } catch (err) {
-        console.warn('Could not update resume on cloud server:', err);
+      if (activeSession && user) {
+        try {
+          await apiRequest(`/api/sessions/${activeSession.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ action: 'RESUME' }),
+          });
+        } catch (err) {
+          console.warn('Could not update resume on cloud server:', err);
+        }
       }
+    } finally {
+      isActionInProgressRef.current = false;
     }
   };
 
   const resetTimer = async () => {
     soundManager.playTick();
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
-    setStatus('IDLE');
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
     targetEndRef.current = null;
     pauseStartRef.current = null;
     stopwatchStartRef.current = null;
     setStopwatchElapsedSeconds(0);
+    LocalStorageRepository.clearActiveTimerSnapshot();
 
-    const defaultDuration =
-      mode === 'FOCUS'
-        ? focusDurationSecs
-        : mode === 'SHORT_BREAK'
-        ? shortBreakDurationSecs
-        : mode === 'LONG_BREAK'
-        ? longBreakDurationSecs
-        : 0;
+    const defaultDuration = getDefaultDurationForMode(mode);
     setSecondsRemaining(defaultDuration);
     setTotalDuration(defaultDuration);
+    setStatus('IDLE');
 
     if (activeSession && user) {
       try {
@@ -431,79 +734,96 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const endSession = async (taskIdOverride?: string | null) => {
-    soundManager.playTick();
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    if (isCompletingRef.current) return;
+    isCompletingRef.current = true;
 
-    const effectiveTaskId = taskIdOverride !== undefined ? taskIdOverride : selectedTaskId;
-
-    // Calculate actual elapsed seconds
-    let elapsedSeconds = 0;
-    if (mode === 'STOPWATCH') {
-      elapsedSeconds = stopwatchElapsedSeconds;
-    } else {
-      elapsedSeconds = Math.max(1, totalDuration - secondsRemaining);
-    }
-
-    setStatus('COMPLETED');
-    setSecondsRemaining(0);
-    setLastCompletedMode(mode);
-
-    // Audio chime
-    if (soundEnabled) {
-      if (mode === 'FOCUS') {
-        soundManager.playSessionComplete();
-      } else {
-        soundManager.playBreakComplete();
+    try {
+      soundManager.playTick();
+      if (intervalIdRef.current) {
+        clearInterval(intervalIdRef.current);
+        intervalIdRef.current = null;
       }
-    }
+      targetEndRef.current = null;
+      pauseStartRef.current = null;
+      LocalStorageRepository.clearActiveTimerSnapshot();
 
-    // Browser Notification
-    if (notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
-      if (Notification.permission === 'granted') {
-        const title = mode === 'FOCUS' ? 'Session Concluded! 🎯' : 'Break Ended! ⏰';
-        const mins = Math.max(1, Math.round(elapsedSeconds / 60));
-        const body =
-          mode === 'FOCUS'
-            ? `Great focus! You completed ${mins} ${mins === 1 ? 'minute' : 'minutes'} of deep study.`
-            : 'Break completed. Ready to get back into focus?';
-        try {
-          new Notification(title, { body, icon: '/favicon.png' });
-        } catch {
-          // ignore
+      const effectiveTaskId = taskIdOverride !== undefined ? taskIdOverride : selectedTaskId;
+
+      // Authoritative elapsed time calculation
+      let elapsedSeconds = 0;
+      if (mode === 'STOPWATCH') {
+        elapsedSeconds = Math.max(1, stopwatchElapsedSeconds);
+      } else {
+        elapsedSeconds = Math.max(1, Math.min(totalDuration, totalDuration - secondsRemaining));
+      }
+
+      setStatus('COMPLETED');
+      setSecondsRemaining(0);
+      setLastCompletedMode(mode);
+
+      // Audio chime
+      if (soundEnabled) {
+        if (mode === 'FOCUS') {
+          soundManager.playSessionComplete();
+        } else {
+          soundManager.playBreakComplete();
         }
       }
-    }
 
-    // Save session completion (Unified offline & cloud)
-    if (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK') {
-      LocalStorageRepository.recordCompletedSession(
-        mode as SessionType,
-        elapsedSeconds,
-        selectedSubjectId,
-        effectiveTaskId
-      );
-    }
-
-    if (activeSession && user) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}/complete`, {
-          method: 'POST',
-          body: JSON.stringify({
-            actualDuration: elapsedSeconds,
-            taskId: effectiveTaskId || undefined,
-          }),
-        });
-      } catch (err) {
-        console.warn('Failed to complete session on server (persisted locally):', err);
+      // Browser Notification
+      if (notificationsEnabled && typeof window !== 'undefined' && 'Notification' in window) {
+        if (Notification.permission === 'granted') {
+          const title = mode === 'FOCUS' ? 'Session Concluded! 🎯' : 'Break Ended! ⏰';
+          const mins = Math.max(1, Math.round(elapsedSeconds / 60));
+          const body =
+            mode === 'FOCUS'
+              ? `Great focus! You completed ${mins} ${mins === 1 ? 'minute' : 'minutes'} of deep study.`
+              : 'Break completed. Ready to get back into focus?';
+          try {
+            new Notification(title, { body, icon: '/favicon.png' });
+          } catch {
+            // ignore
+          }
+        }
       }
-    }
 
-    // Update cycle counts if Focus completed
-    if (mode === 'FOCUS') {
-      setCycleCount((prev) => (prev >= longBreakInterval ? 1 : prev + 1));
-    }
+      // Save session completion (Unified offline & cloud)
+      const currentSessionId = activeSession?.id;
+      if (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK') {
+        LocalStorageRepository.recordCompletedSession(
+          mode as SessionType,
+          elapsedSeconds,
+          selectedSubjectId,
+          effectiveTaskId,
+          currentSessionId
+        );
+      }
 
-    setShowCompletionModal(true);
+      if (activeSession && user) {
+        try {
+          await apiRequest(`/api/sessions/${activeSession.id}/complete`, {
+            method: 'POST',
+            body: JSON.stringify({
+              actualDuration: elapsedSeconds,
+              taskId: effectiveTaskId || undefined,
+            }),
+          });
+        } catch (err) {
+          console.warn('Failed to complete session on server (persisted locally):', err);
+        }
+      }
+
+      setActiveSession(null);
+
+      // Update cycle counts if Focus completed
+      if (mode === 'FOCUS') {
+        setCycleCount((prev) => (prev >= longBreakInterval ? 1 : prev + 1));
+      }
+
+      setShowCompletionModal(true);
+    } finally {
+      isCompletingRef.current = false;
+    }
   };
 
   const abandonSession = async () => {
@@ -512,7 +832,23 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const skipSession = async () => {
     soundManager.playTick();
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
+    targetEndRef.current = null;
+    pauseStartRef.current = null;
+    LocalStorageRepository.clearActiveTimerSnapshot();
+
+    if (activeSession && user) {
+      try {
+        await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
+      } catch {
+        // ignore
+      }
+    }
+    setActiveSession(null);
+
     setStatus('IDLE');
 
     // Cycle modes
@@ -528,18 +864,19 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   };
 
   const switchMode = (newMode: TimerMode) => {
-    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
-    setMode(newMode);
-    setStatus('IDLE');
+    if (intervalIdRef.current) {
+      clearInterval(intervalIdRef.current);
+      intervalIdRef.current = null;
+    }
     targetEndRef.current = null;
     pauseStartRef.current = null;
     stopwatchStartRef.current = null;
+    LocalStorageRepository.clearActiveTimerSnapshot();
 
-    let newDuration = focusDurationSecs;
-    if (newMode === 'SHORT_BREAK') newDuration = shortBreakDurationSecs;
-    if (newMode === 'LONG_BREAK') newDuration = longBreakDurationSecs;
-    if (newMode === 'STOPWATCH') newDuration = 0;
+    setMode(newMode);
+    setStatus('IDLE');
 
+    const newDuration = getDefaultDurationForMode(newMode);
     setTotalDuration(newDuration);
     setSecondsRemaining(newDuration);
   };

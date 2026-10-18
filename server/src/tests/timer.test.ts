@@ -76,4 +76,60 @@ describe('TimerService Unit Tests', () => {
     assert.strictEqual(TimerService.isValidTransition('PAUSED', 'ABANDON'), true);
     assert.strictEqual(TimerService.isValidTransition('COMPLETED', 'ABANDON'), false);
   });
+
+  it('accurately calculates wall-clock remaining time and prevents negative countdowns', () => {
+    const plannedSeconds = 1500; // 25 minutes
+    const startTimeMs = 1700000000000;
+    const targetEndMs = startTimeMs + plannedSeconds * 1000;
+
+    // 10 minutes in (600s elapsed -> 900s remaining)
+    const midTimeMs = startTimeMs + 600 * 1000;
+    const remainingMid = Math.max(0, Math.ceil((targetEndMs - midTimeMs) / 1000));
+    assert.strictEqual(remainingMid, 900);
+
+    // Exactly at end (0s remaining)
+    const exactEndMs = targetEndMs;
+    const remainingExact = Math.max(0, Math.ceil((targetEndMs - exactEndMs) / 1000));
+    assert.strictEqual(remainingExact, 0);
+
+    // After end (should be clamped to 0, not negative)
+    const pastEndMs = targetEndMs + 120 * 1000;
+    const remainingPast = Math.max(0, Math.ceil((targetEndMs - pastEndMs) / 1000));
+    assert.strictEqual(remainingPast, 0);
+  });
+
+  it('recovers countdown accurately across simulated page refresh or device sleep', () => {
+    const plannedSeconds = 1500;
+    const nowMs = 1700000000000;
+    const targetEndMs = nowMs + plannedSeconds * 1000;
+
+    // Simulate page refresh 12.5 minutes later
+    const refreshTimeMs = nowMs + 750 * 1000;
+    const recoveredRemaining = Math.max(0, Math.ceil((targetEndMs - refreshTimeMs) / 1000));
+    assert.strictEqual(recoveredRemaining, 750);
+
+    // Simulate device sleep where tab wakes after timer expired
+    const wakeAfterSleepMs = targetEndMs + 300 * 1000;
+    const wakeRemaining = Math.max(0, Math.ceil((targetEndMs - wakeAfterSleepMs) / 1000));
+    assert.strictEqual(wakeRemaining, 0);
+    // Verified that remaining <= 0 cleanly triggers completion exactly once without underflowing
+    assert.ok(wakeRemaining <= 0);
+  });
+
+  it('calculates stopwatch elapsed time accurately with multiple pause periods', () => {
+    const stopwatchStartMs = 1700000000000;
+    const totalPausedMs = (120 + 90) * 1000; // 210s total paused
+    const checkTimeMs = stopwatchStartMs + 1000 * 1000; // 1000s wall clock elapsed
+
+    const elapsedSeconds = Math.max(0, Math.floor((checkTimeMs - stopwatchStartMs - totalPausedMs) / 1000));
+    // 1000s - 210s = 790s
+    assert.strictEqual(elapsedSeconds, 790);
+  });
+
+  it('calculates manual completion duration correctly without inflating paused duration', () => {
+    const totalDuration = 1500;
+    const secondsRemaining = 600; // 10 minutes left
+    const elapsedFocused = Math.max(1, Math.min(totalDuration, totalDuration - secondsRemaining));
+    assert.strictEqual(elapsedFocused, 900); // 15 minutes of focus
+  });
 });

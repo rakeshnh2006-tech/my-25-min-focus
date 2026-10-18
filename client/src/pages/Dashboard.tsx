@@ -178,12 +178,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   ];
 
   return (
-    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-200">
-      {/* 1. HERO TIMER CARD (Center & Main Element) */}
-      <div className="bg-[#111827] border border-slate-800 rounded-3xl p-6 sm:p-10 shadow-card relative overflow-hidden">
-        {/* Subtle background glow matching mode */}
+    <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
+      {/* 1. HERO TIMER CARD (Center & Main Element with Claymorphism & Frosted Glass) */}
+      <div className="clay-card p-6 sm:p-10 relative overflow-hidden">
+        {/* Ambient Glowing Aura matching active mode */}
         <div
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[420px] h-[420px] rounded-full blur-3xl pointer-events-none opacity-20 transition-colors duration-500 ${
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] rounded-full blur-[130px] pointer-events-none opacity-25 transition-colors duration-700 -z-10 ${
             mode === 'FOCUS'
               ? 'bg-blue-500'
               : mode === 'SHORT_BREAK'
@@ -195,43 +195,47 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         />
 
         {/* Top Controls: Mode Switcher & Presets */}
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-slate-800/80">
-          {/* Mode Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-[#080D1A] border border-slate-800">
-            {modes.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => switchMode(m.id)}
-                className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  mode === m.id
-                    ? m.id === 'FOCUS'
-                      ? 'bg-focus-500 text-white shadow-sm'
-                      : m.id === 'SHORT_BREAK'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : m.id === 'LONG_BREAK'
-                      ? 'bg-violet-600 text-white shadow-sm'
-                      : 'bg-cyan-500 text-white shadow-sm'
-                    : 'text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {m.label}
-              </button>
-            ))}
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+          {/* Tactile Recessed Mode Switcher */}
+          <div className="flex items-center p-1.5 rounded-2xl clay-inset">
+            {modes.map((m) => {
+              const isActive = mode === m.id;
+              let activeClass = 'clay-btn-focus shadow-lg shadow-blue-500/25';
+              if (m.id === 'SHORT_BREAK') activeClass = 'clay-btn-break shadow-lg shadow-emerald-500/25';
+              if (m.id === 'LONG_BREAK') activeClass = 'clay-btn-violet shadow-lg shadow-violet-500/25';
+              if (m.id === 'STOPWATCH') activeClass = 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white shadow-lg shadow-cyan-500/25';
+
+              return (
+                <button
+                  key={m.id}
+                  onClick={() => switchMode(m.id)}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                    isActive
+                      ? `clay-btn ${activeClass}`
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
+                  }`}
+                >
+                  {m.label}
+                </button>
+              );
+            })}
           </div>
 
           {/* Preset Chips (Only for countdown modes) */}
           {mode !== 'STOPWATCH' && (
             <div className="flex items-center space-x-1.5">
-              <span className="text-[11px] text-slate-500 font-medium mr-1 hidden sm:inline">Presets:</span>
+              <span className="text-[11px] text-slate-400 font-semibold mr-1 hidden sm:inline uppercase tracking-wider">
+                Presets:
+              </span>
               {presets.map((p) => (
                 <button
                   key={p.id}
                   onClick={() => applyPreset(p.id)}
                   title={p.desc}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono font-medium border transition-all ${
+                  className={`clay-chip px-3 py-1.5 text-xs font-mono font-bold transition-all ${
                     activePreset === p.id
-                      ? 'border-focus-500 bg-focus-500/15 text-focus-400 font-bold'
-                      : 'border-slate-800 bg-[#080D1A] text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                      ? 'border border-blue-400/50 bg-blue-500/20 text-blue-300 shadow-md shadow-blue-500/20'
+                      : 'border border-white/[0.08] bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/[0.15]'
                   }`}
                 >
                   {p.label}
@@ -245,14 +249,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-6 pb-2">
           {/* Subject Dropdown */}
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-              <BookOpen className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+              <BookOpen className="w-3.5 h-3.5 text-blue-400" />
               <span>Subject:</span>
             </span>
             <select
               value={selectedSubjectId || ''}
               onChange={(e) => setSelectedSubjectId(e.target.value || null)}
-              className="bg-[#080D1A] border border-slate-800 text-xs font-medium text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-focus-500"
+              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
             >
               <option value="">General Study (No Subject)</option>
               {subjects.map((s) => (
@@ -265,14 +269,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
           {/* Task Dropdown & Quick Add */}
           <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-              <CheckSquare className="w-3.5 h-3.5 text-slate-500" />
+            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+              <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
               <span>Task:</span>
             </span>
             <select
               value={selectedTaskId || ''}
               onChange={(e) => setSelectedTaskId(e.target.value || null)}
-              className="bg-[#080D1A] border border-slate-800 text-xs font-medium text-slate-200 rounded-lg px-3 py-1.5 focus:outline-none focus:border-focus-500 max-w-[200px] truncate"
+              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 max-w-[200px] truncate cursor-pointer"
             >
               <option value="">None Selected</option>
               {tasks
@@ -286,7 +290,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <button
               onClick={() => setShowQuickAddTask(!showQuickAddTask)}
               title="Add task quickly"
-              className="p-1.5 rounded-lg bg-[#080D1A] border border-slate-800 text-slate-400 hover:text-white transition-colors"
+              className="clay-chip p-2 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -301,45 +305,48 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               placeholder="What are you working on right now?"
               value={newTaskTitle}
               onChange={(e) => setNewTaskTitle(e.target.value)}
-              className="flex-1 bg-[#080D1A] border border-slate-700 rounded-xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-focus-500"
+              className="flex-1 clay-inset rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
               autoFocus
             />
             <button
               type="submit"
-              className="px-4 py-2 rounded-xl bg-focus-500 text-white text-xs font-semibold hover:bg-focus-600 transition-colors"
+              className="clay-btn clay-btn-focus px-4 py-2 text-xs font-bold"
             >
               Set Task
             </button>
           </form>
         )}
 
-        {/* 2. THE CIRCULAR PROGRESS TIMER DISPLAY */}
+        {/* 2. THE CIRCULAR PROGRESS TIMER DISPLAY (Tactile Clay Dial & Glow Arc) */}
         <div className="relative z-10 flex flex-col items-center justify-center my-6 sm:my-10">
-          <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center">
+          <div className="relative w-76 h-76 sm:w-84 sm:h-84 flex items-center justify-center">
+            {/* Volumetric Clay Dial Backplate */}
+            <div className="absolute inset-2 clay-timer-dial pointer-events-none" />
+
             {/* SVG Progress Ring */}
-            <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 300 300">
+            <svg className="w-full h-full -rotate-90 transform relative z-10" viewBox="0 0 300 300">
               {/* Outer Track Ring */}
               <circle
                 cx="150"
                 cy="150"
                 r={radius}
-                className="stroke-slate-800/80"
+                className="stroke-slate-800/60"
                 strokeWidth="10"
                 fill="transparent"
               />
-              {/* Animated Progress Ring */}
+              {/* Animated Progress Ring with Glow Filter */}
               <circle
                 cx="150"
                 cy="150"
                 r={radius}
                 stroke={
                   mode === 'FOCUS'
-                    ? '#4F7CFF'
+                    ? '#4E75FF'
                     : mode === 'SHORT_BREAK'
                     ? '#10B981'
                     : mode === 'LONG_BREAK'
-                    ? '#7C3AED'
-                    : '#38BDF8'
+                    ? '#8B5CF6'
+                    : '#06B6D4'
                 }
                 strokeWidth="10"
                 strokeDasharray={circumference}
@@ -348,22 +355,31 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 fill="transparent"
                 style={{
                   transition: 'stroke-dashoffset 0.35s ease-out, stroke 0.3s ease',
+                  filter: `drop-shadow(0 0 8px ${
+                    mode === 'FOCUS'
+                      ? 'rgba(78, 117, 255, 0.6)'
+                      : mode === 'SHORT_BREAK'
+                      ? 'rgba(16, 185, 129, 0.6)'
+                      : mode === 'LONG_BREAK'
+                      ? 'rgba(139, 92, 246, 0.6)'
+                      : 'rgba(6, 182, 212, 0.6)'
+                  })`,
                 }}
               />
             </svg>
 
             {/* Inner Content Display */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 select-none">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 select-none z-20">
               {/* Session Type Pill */}
               <div
-                className={`inline-flex items-center space-x-1.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 border ${
+                className={`clay-chip inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2 border ${
                   mode === 'FOCUS'
-                    ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                    ? 'bg-blue-500/15 text-blue-300 border-blue-400/30'
                     : mode === 'SHORT_BREAK'
-                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/30'
                     : mode === 'LONG_BREAK'
-                    ? 'bg-violet-500/10 text-violet-400 border-violet-500/20'
-                    : 'bg-cyan-500/10 text-cyan-400 border-cyan-500/20'
+                    ? 'bg-violet-500/15 text-violet-300 border-violet-400/30'
+                    : 'bg-cyan-500/15 text-cyan-300 border-cyan-400/30'
                 }`}
               >
                 <span>
@@ -377,57 +393,57 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </span>
               </div>
 
-              {/* Countdown Digits */}
-              <span className="text-5xl sm:text-6xl font-extrabold text-[#F8FAFC] font-mono tracking-tight my-1 tabular-nums">
+              {/* Countdown Digits with tactile glow */}
+              <span className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#F8FAFC] font-mono tracking-tight my-1 tabular-nums drop-shadow-[0_4px_16px_rgba(0,0,0,0.7)]">
                 {formatTime(secondsRemaining)}
               </span>
 
               {/* Active Subject & Task Context Label */}
-              <div className="mt-1 max-w-[200px] truncate">
+              <div className="mt-1 max-w-[220px] truncate">
                 {activeTask ? (
-                  <p className="text-xs font-semibold text-slate-300 truncate">{activeTask.title}</p>
+                  <p className="text-xs font-bold text-slate-200 truncate">{activeTask.title}</p>
                 ) : activeSubject ? (
-                  <p className="text-xs font-semibold text-slate-300 truncate" style={{ color: activeSubject.color }}>
+                  <p className="text-xs font-bold truncate" style={{ color: activeSubject.color }}>
                     {activeSubject.name}
                   </p>
                 ) : (
-                  <p className="text-xs text-slate-500">Deep Academic Study</p>
+                  <p className="text-xs font-medium text-slate-400">Deep Academic Study</p>
                 )}
               </div>
 
               {/* Cycle indicator dots (4 sessions per long break) */}
               {mode === 'FOCUS' && (
-                <div className="flex items-center space-x-1.5 mt-3">
+                <div className="flex items-center space-x-2 mt-3">
                   {[1, 2, 3, 4].map((c) => (
                     <span
                       key={c}
-                      className={`w-2 h-2 rounded-full transition-all ${
+                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
                         c < cycleCount
-                          ? 'bg-focus-500 ring-2 ring-focus-500/30'
+                          ? 'bg-blue-400 ring-2 ring-blue-500/40 shadow-sm shadow-blue-500/50'
                           : c === cycleCount && status === 'RUNNING'
-                          ? 'bg-focus-400 animate-pulse'
-                          : 'bg-slate-800'
+                          ? 'bg-blue-300 animate-pulse ring-4 ring-blue-500/30'
+                          : 'bg-slate-800 border border-white/[0.08]'
                       }`}
                     />
                   ))}
-                  <span className="text-[10px] text-slate-500 ml-1">Cycle {cycleCount}/4</span>
+                  <span className="text-[10px] font-bold text-slate-400 ml-1">Cycle {cycleCount}/4</span>
                 </div>
               )}
             </div>
           </div>
         </div>
 
-        {/* 3. PRIMARY CONTROLS BAR */}
+        {/* 3. PRIMARY CONTROLS BAR (Tactile Clay Buttons) */}
         <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2">
           {/* Main Action Button (Start / Pause / Resume) */}
           {status === 'IDLE' && (
             <button
               onClick={startTimer}
-              className="flex items-center space-x-2.5 px-8 py-3.5 rounded-2xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-sm shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="clay-btn clay-btn-focus flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-5 h-5 fill-current" />
               <span>Start Session</span>
-              <span className="text-[10px] bg-focus-700/60 px-1.5 py-0.5 rounded text-focus-200 font-mono">
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold">
                 Space
               </span>
             </button>
@@ -436,11 +452,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'RUNNING' && (
             <button
               onClick={pauseTimer}
-              className="flex items-center space-x-2.5 px-8 py-3.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-sm shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="clay-btn clay-btn-amber flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
             >
-              <Pause className="w-4 h-4 fill-current" />
+              <Pause className="w-5 h-5 fill-current" />
               <span>Pause</span>
-              <span className="text-[10px] bg-amber-600/60 px-1.5 py-0.5 rounded text-amber-950 font-mono">
+              <span className="text-[10px] bg-slate-950/20 px-2 py-0.5 rounded-md text-slate-950 font-mono font-bold">
                 Space
               </span>
             </button>
@@ -449,11 +465,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'PAUSED' && (
             <button
               onClick={resumeTimer}
-              className="flex items-center space-x-2.5 px-8 py-3.5 rounded-2xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-sm shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98]"
+              className="clay-btn clay-btn-focus flex items-center space-x-3 px-9 py-4 rounded-2xl text-base shadow-xl"
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-5 h-5 fill-current" />
               <span>Resume</span>
-              <span className="text-[10px] bg-focus-700/60 px-1.5 py-0.5 rounded text-focus-200 font-mono">
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold">
                 Space
               </span>
             </button>
@@ -464,10 +480,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             onClick={resetTimer}
             title="Reset timer [R]"
             disabled={status === 'IDLE'}
-            className={`p-3.5 rounded-2xl border transition-all ${
+            className={`clay-chip p-3.5 transition-all ${
               status !== 'IDLE'
-                ? 'border-slate-800 bg-[#080D1A] text-slate-300 hover:text-white hover:border-slate-700'
-                : 'border-slate-800/50 bg-[#080D1A]/50 text-slate-600 cursor-not-allowed'
+                ? 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
+                : 'bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50'
             }`}
           >
             <RotateCcw className="w-4 h-4" />
@@ -477,7 +493,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <button
             onClick={skipSession}
             title="Skip to next session"
-            className="p-3.5 rounded-2xl border border-slate-800 bg-[#080D1A] text-slate-300 hover:text-white hover:border-slate-700 transition-all"
+            className="clay-chip p-3.5 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08] transition-all"
           >
             <SkipForward className="w-4 h-4" />
           </button>
@@ -486,10 +502,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <button
             onClick={togglePiP}
             title={isPiPActive ? 'Exit Picture-in-Picture' : 'Open Picture-in-Picture Mini Timer'}
-            className={`p-3.5 rounded-2xl border transition-all ${
+            className={`clay-chip p-3.5 transition-all ${
               isPiPActive
-                ? 'border-focus-500 bg-focus-500/20 text-focus-400'
-                : 'border-slate-800 bg-[#080D1A] text-slate-300 hover:text-white hover:border-slate-700'
+                ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
+                : 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
             }`}
           >
             <PictureInPicture2 className="w-4 h-4" />
@@ -503,20 +519,20 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 setShowRainSlider(true);
               }}
               title={isRainPlaying ? 'Rain sound playing (click to toggle)' : 'Play ambient rain sound'}
-              className={`p-3.5 rounded-2xl border transition-all flex items-center gap-1.5 ${
+              className={`clay-chip p-3.5 transition-all flex items-center gap-1.5 ${
                 isRainPlaying
-                  ? 'border-blue-500 bg-blue-500/20 text-blue-400 shadow-sm'
-                  : 'border-slate-800 bg-[#080D1A] text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
+                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-white/[0.08]'
               }`}
             >
               <CloudRain className="w-4 h-4" />
-              {isRainPlaying && <span className="text-[10px] font-semibold text-blue-300 hidden sm:inline">Rain</span>}
+              {isRainPlaying && <span className="text-[10px] font-bold text-blue-300 hidden sm:inline">Rain</span>}
             </button>
 
             {/* Quick volume slider popover */}
             {isRainPlaying && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 p-3 bg-[#080D1A] border border-slate-800 rounded-xl shadow-xl flex items-center space-x-2 z-20">
-                <VolumeX className="w-3.5 h-3.5 text-slate-500" />
+              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-3.5 clay-card flex items-center space-x-2.5 z-30 shadow-2xl">
+                <VolumeX className="w-3.5 h-3.5 text-slate-400" />
                 <input
                   type="range"
                   min="0"
@@ -533,16 +549,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
       </div>
 
-      {/* 4. VISUALLY QUIETER DAILY FOCUS SUMMARY BAR */}
+      {/* 4. DAILY FOCUS SUMMARY BAR (Tactile Clay Metric Tiles) */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {/* Focused Time */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-400">
+        <div className="clay-card clay-card-interactive p-4 sm:p-5 flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400 shadow-inner flex-shrink-0">
             <Clock className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] uppercase font-semibold text-slate-500">Focused Today</p>
-            <p className="text-lg font-bold text-white">
+            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Focused Today</p>
+            <p className="text-xl font-extrabold text-white">
               {Math.floor(dailySummary.focusedMinutes / 60) > 0
                 ? `${Math.floor(dailySummary.focusedMinutes / 60)}h ${dailySummary.focusedMinutes % 60}m`
                 : `${dailySummary.focusedMinutes}m`}
@@ -551,44 +567,44 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {/* Completed Sessions */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+        <div className="clay-card clay-card-interactive p-4 sm:p-5 flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center text-emerald-400 shadow-inner flex-shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] uppercase font-semibold text-slate-500">Completed</p>
-            <p className="text-lg font-bold text-white">
-              {dailySummary.completedSessions} <span className="text-xs font-normal text-slate-400">Sessions</span>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Completed</p>
+            <p className="text-xl font-extrabold text-white">
+              {dailySummary.completedSessions} <span className="text-xs font-semibold text-slate-400">Sessions</span>
             </p>
           </div>
         </div>
 
         {/* Current Streak */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+        <div className="clay-card clay-card-interactive p-4 sm:p-5 flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-inner flex-shrink-0">
             <Flame className="w-5 h-5" />
           </div>
           <div>
-            <p className="text-[11px] uppercase font-semibold text-slate-500">Streak</p>
-            <p className="text-lg font-bold text-white">
-              {dailySummary.currentStreak} <span className="text-xs font-normal text-slate-400">Days</span>
+            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Streak</p>
+            <p className="text-xl font-extrabold text-white">
+              {dailySummary.currentStreak} <span className="text-xs font-semibold text-slate-400">Days</span>
             </p>
           </div>
         </div>
 
         {/* Goal Progress */}
-        <div className="bg-[#111827] border border-slate-800 rounded-2xl p-4 flex items-center space-x-3.5">
-          <div className="w-10 h-10 rounded-xl bg-violet-500/10 border border-violet-500/20 flex items-center justify-center text-violet-400">
+        <div className="clay-card clay-card-interactive p-4 sm:p-5 flex items-center space-x-3.5">
+          <div className="w-11 h-11 rounded-2xl bg-violet-500/15 border border-violet-400/30 flex items-center justify-center text-violet-400 shadow-inner flex-shrink-0">
             <Target className="w-5 h-5" />
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] uppercase font-semibold text-slate-500">Daily Goal</p>
-              <span className="text-xs font-bold text-violet-400">{dailySummary.goalProgressPercentage}%</span>
+              <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Daily Goal</p>
+              <span className="text-xs font-extrabold text-violet-400">{dailySummary.goalProgressPercentage}%</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5 mt-1.5 overflow-hidden">
+            <div className="w-full clay-inset-sm rounded-full h-2 mt-2 overflow-hidden">
               <div
-                className="bg-violet-500 h-1.5 rounded-full transition-all duration-500"
+                className="bg-gradient-to-r from-violet-500 to-indigo-400 h-2 rounded-full transition-all duration-500 shadow-sm shadow-violet-500/50"
                 style={{ width: `${dailySummary.goalProgressPercentage}%` }}
               />
             </div>
@@ -599,24 +615,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
       {/* 5. SECONDARY CARDS: ACTIVE STUDY TASKS & RECENT HISTORY */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left: Active Tasks */}
-        <div className="lg:col-span-7 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="lg:col-span-7 clay-card p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <div className="flex items-center space-x-2">
-              <CheckSquare className="w-4 h-4 text-focus-400" />
-              <h2 className="text-sm font-bold text-white">Focus Tasks</h2>
+              <CheckSquare className="w-4 h-4 text-blue-400" />
+              <h2 className="text-sm font-extrabold text-white">Focus Tasks</h2>
             </div>
             <button
               onClick={() => onNavigate('tasks')}
-              className="text-xs text-focus-400 hover:text-focus-300 font-medium flex items-center gap-1 transition-colors"
+              className="text-xs text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 transition-colors"
             >
               <span>Manage All</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="space-y-2.5">
             {tasks.filter((t) => !t.isCompleted).slice(0, 4).length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center">No active tasks right now. Create one above!</p>
+              <p className="text-xs text-slate-400 py-6 text-center">No active tasks right now. Create one above!</p>
             ) : (
               tasks
                 .filter((t) => !t.isCompleted)
@@ -624,22 +640,22 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 .map((task) => (
                   <div
                     key={task.id}
-                    className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                    className={`flex items-center justify-between p-3.5 rounded-2xl transition-all ${
                       selectedTaskId === task.id
-                        ? 'border-focus-500/40 bg-focus-500/10'
-                        : 'border-slate-800/80 bg-[#080D1A]/60 hover:border-slate-700'
+                        ? 'border border-blue-400/50 bg-blue-500/15 shadow-md shadow-blue-500/15'
+                        : 'clay-inset-sm hover:border-white/[0.15]'
                     }`}
                   >
                     <div className="flex items-center space-x-3 min-w-0">
                       <button
                         onClick={() => handleToggleTask(task)}
-                        className="w-4 h-4 rounded border border-slate-600 hover:border-focus-400 flex items-center justify-center flex-shrink-0 transition-colors"
+                        className="w-5 h-5 rounded-lg border border-slate-600 hover:border-blue-400 flex items-center justify-center flex-shrink-0 transition-colors bg-slate-900/60"
                       >
                         {task.isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
                       </button>
                       <button
                         onClick={() => setSelectedTaskId(task.id)}
-                        className="text-left text-xs text-slate-200 hover:text-white truncate font-medium"
+                        className="text-left text-xs text-slate-200 hover:text-white truncate font-semibold"
                       >
                         {task.title}
                       </button>
@@ -648,17 +664,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                     <div className="flex items-center space-x-2 flex-shrink-0 ml-3">
                       {task.subject && (
                         <span
-                          className="px-2 py-0.5 rounded text-[10px] font-semibold"
+                          className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold"
                           style={{
-                            backgroundColor: `${task.subject.color}15`,
+                            backgroundColor: `${task.subject.color}20`,
                             color: task.subject.color,
-                            border: `1px solid ${task.subject.color}30`,
+                            border: `1px solid ${task.subject.color}40`,
                           }}
                         >
                           {task.subject.name}
                         </span>
                       )}
-                      <span className="text-[10px] text-slate-500 font-mono">
+                      <span className="text-[10px] text-slate-400 font-mono font-semibold">
                         {task.completedSessions}/{task.estimatedSessions} 🍅
                       </span>
                     </div>
@@ -669,41 +685,41 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {/* Right: Recent Completed Sessions */}
-        <div className="lg:col-span-5 bg-[#111827] border border-slate-800 rounded-2xl p-6 space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div className="lg:col-span-5 clay-card p-6 space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-white/[0.08]">
             <div className="flex items-center space-x-2">
               <Sparkles className="w-4 h-4 text-amber-400" />
-              <h2 className="text-sm font-bold text-white">Recent Sessions</h2>
+              <h2 className="text-sm font-extrabold text-white">Recent Sessions</h2>
             </div>
             <button
               onClick={() => onNavigate('history')}
-              className="text-xs text-slate-400 hover:text-slate-200 font-medium flex items-center gap-1 transition-colors"
+              className="text-xs text-slate-400 hover:text-slate-200 font-bold flex items-center gap-1 transition-colors"
             >
               <span>History</span>
-              <ArrowRight className="w-3 h-3" />
+              <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
 
           <div className="space-y-2.5">
             {recentSessions.length === 0 ? (
-              <p className="text-xs text-slate-500 py-4 text-center">Your completed study sessions will appear here.</p>
+              <p className="text-xs text-slate-400 py-6 text-center">Your completed study sessions will appear here.</p>
             ) : (
               recentSessions.map((session) => (
                 <div
                   key={session.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-[#080D1A]/60 border border-slate-800/80 text-xs"
+                  className="flex items-center justify-between p-3.5 rounded-2xl clay-inset-sm text-xs"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-200 truncate">
+                    <p className="font-bold text-slate-200 truncate">
                       {session.task?.title || session.subject?.name || 'Focused Study'}
                     </p>
-                    <p className="text-[10px] text-slate-500 mt-0.5">
+                    <p className="text-[10px] text-slate-400 mt-0.5 font-medium">
                       {session.endedAt
                         ? new Date(session.endedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
                         : 'Just now'}
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-bold text-focus-400">
+                  <span className="text-xs font-mono font-extrabold text-blue-400">
                     +{Math.round(session.actualDuration / 60)} min
                   </span>
                 </div>

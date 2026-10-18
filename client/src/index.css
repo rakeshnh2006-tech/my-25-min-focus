@@ -6,8 +6,9 @@
   body {
     @apply bg-background text-slate-100 antialiased selection:bg-focus-500 selection:text-white;
     font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
-    background-color: #080D1A;
+    background-color: #070B16;
     color: #F8FAFC;
+    min-height: 100vh;
   }
 
   /* Custom sleek scrollbars */
@@ -19,37 +20,212 @@
     background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    @apply bg-slate-800 rounded-full;
+    background: #1E293B;
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    @apply bg-slate-700;
+    background: #334155;
   }
 }
 
 @layer utilities {
-  .glass-card {
-    background: #111827;
+  /* ==========================================================================
+     GLASSMORPHISM FOUNDATIONS (Translucent, Frosted, Specular Light)
+     ========================================================================== */
+  .glass-panel {
+    background: rgba(16, 25, 46, 0.72);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
-  .glass-card-hover {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  .glass-panel-subtle {
+    background: rgba(11, 18, 34, 0.55);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.05);
   }
-  .glass-card-hover:hover {
-    border-color: rgba(79, 124, 255, 0.35);
+
+  .glass-pill {
+    background: rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+
+  /* ==========================================================================
+     CLAYMORPHISM 3D VOLUMETRIC SURFACES (Soft, Tactile, Pillowy Depth)
+     ========================================================================== */
+  .clay-card {
+    background: rgba(16, 25, 46, 0.75);
+    backdrop-filter: blur(20px) saturate(150%);
+    -webkit-backdrop-filter: blur(20px) saturate(150%);
+    border: 1px solid rgba(255, 255, 255, 0.09);
+    border-radius: 1.5rem;
+    box-shadow:
+      0 20px 40px -15px rgba(0, 0, 0, 0.75),
+      0 4px 16px rgba(0, 0, 0, 0.4),
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.14),
+      inset 0 -2.5px 6px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  .clay-card-interactive {
+    transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+  .clay-card-interactive:hover {
+    transform: translateY(-2px);
+    border-color: rgba(78, 117, 255, 0.35);
+    box-shadow:
+      0 26px 50px -12px rgba(0, 0, 0, 0.85),
+      0 0 30px -5px rgba(78, 117, 255, 0.22),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.22),
+      inset 0 -2.5px 6px 0 rgba(0, 0, 0, 0.45);
+  }
+
+  /* Recessed 3D Clay Wells (Inputs, Inset tracks, Quote boxes) */
+  .clay-inset {
+    background: rgba(7, 12, 24, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow:
+      inset 0 3px 8px 0 rgba(0, 0, 0, 0.7),
+      inset 0 -1px 2px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  .clay-inset-sm {
+    background: rgba(7, 12, 24, 0.85);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow:
+      inset 0 2px 5px 0 rgba(0, 0, 0, 0.6),
+      inset 0 -1px 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* ==========================================================================
+     CLAYMORPHISM TACTILE BUTTONS (Satisfying Physical Push & Extrusion)
+     ========================================================================== */
+  .clay-btn {
+    position: relative;
+    border-radius: 1rem;
+    font-weight: 700;
+    transition: all 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+      0 8px 20px -4px rgba(0, 0, 0, 0.5),
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.32),
+      inset 0 -3px 5px 0 rgba(0, 0, 0, 0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .clay-btn:hover {
+    transform: translateY(-1.5px);
+    box-shadow:
+      0 12px 24px -4px rgba(0, 0, 0, 0.65),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -3px 5px 0 rgba(0, 0, 0, 0.4);
+  }
+  .clay-btn:active {
+    transform: translateY(1.5px);
+    box-shadow:
+      0 3px 6px -1px rgba(0, 0, 0, 0.6),
+      inset 0 3px 6px 0 rgba(0, 0, 0, 0.5),
+      inset 0 -1px 1px 0 rgba(255, 255, 255, 0.12);
+  }
+
+  /* Cognitive Indigo - Study Focus CTA */
+  .clay-btn-focus {
+    background: linear-gradient(180deg, #5A83FF 0%, #3B64EC 100%);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .clay-btn-focus:hover {
+    box-shadow:
+      0 12px 28px -4px rgba(78, 117, 255, 0.5),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -3px 5px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  /* Sage Emerald - Calming Break CTA */
+  .clay-btn-break {
+    background: linear-gradient(180deg, #10B981 0%, #059669 100%);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .clay-btn-break:hover {
+    box-shadow:
+      0 12px 28px -4px rgba(16, 185, 129, 0.5),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.45),
+      inset 0 -3px 5px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  /* Honey Amber - Alert / Pause State CTA */
+  .clay-btn-amber {
+    background: linear-gradient(180deg, #FBBF24 0%, #D97706 100%);
+    color: #0F172A;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .clay-btn-amber:hover {
+    box-shadow:
+      0 12px 28px -4px rgba(245, 158, 11, 0.5),
+      inset 0 1.5px 1.5px 0 rgba(255, 255, 255, 0.5),
+      inset 0 -3px 5px 0 rgba(0, 0, 0, 0.4);
+  }
+
+  /* Amethyst Violet - Long Break CTA */
+  .clay-btn-violet {
+    background: linear-gradient(180deg, #A78BFA 0%, #7C3AED 100%);
+    color: #FFFFFF;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  /* Sleek Clay Slate - Secondary / Tool CTA */
+  .clay-btn-slate {
+    background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+    color: #F8FAFC;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .clay-btn-slate:hover {
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Tactile Clay Pill / Chips */
+  .clay-chip {
+    border-radius: 0.85rem;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    box-shadow:
+      0 4px 10px -2px rgba(0, 0, 0, 0.4),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 -2px 3px 0 rgba(0, 0, 0, 0.35);
+  }
+  .clay-chip:hover {
     transform: translateY(-1px);
-    box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.6);
+  }
+  .clay-chip:active {
+    transform: translateY(1px);
+    box-shadow:
+      inset 0 2px 4px 0 rgba(0, 0, 0, 0.5),
+      inset 0 -1px 1px 0 rgba(255, 255, 255, 0.08);
   }
 
+  /* Volumetric 3D Timer Disc Plate */
+  .clay-timer-dial {
+    background: radial-gradient(circle at 50% 30%, rgba(26, 39, 70, 0.9) 0%, rgba(11, 18, 34, 0.95) 100%);
+    border-radius: 9999px;
+    border: 1.5px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+      0 20px 45px -10px rgba(0, 0, 0, 0.8),
+      inset 0 3px 6px 0 rgba(255, 255, 255, 0.15),
+      inset 0 -6px 12px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  /* Ambient Glow Utilities */
   .glow-focus {
-    box-shadow: 0 0 25px -5px rgba(79, 124, 255, 0.2);
+    box-shadow: 0 0 30px -4px rgba(78, 117, 255, 0.35);
   }
-
   .glow-break-short {
-    box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.2);
+    box-shadow: 0 0 30px -4px rgba(16, 185, 129, 0.35);
   }
-
   .glow-break-long {
-    box-shadow: 0 0 25px -5px rgba(124, 58, 237, 0.2);
+    box-shadow: 0 0 30px -4px rgba(139, 92, 246, 0.35);
   }
 }

@@ -47,21 +47,21 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Dialog content */}
       <div
-        className={`relative z-10 w-full ${maxWidthClasses} glass-card rounded-2xl p-6 shadow-2xl transition-all border border-slate-800 text-slate-100 animate-in fade-in zoom-in-95 duration-150`}
+        className={`relative z-10 w-full ${maxWidthClasses} clay-card p-6 sm:p-7 shadow-2xl transition-all border border-white/[0.1] text-slate-100 animate-in fade-in zoom-in-95 duration-200`}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-5 pb-3 border-b border-white/[0.08]">
           <div>
-            {title && <h2 className="text-xl font-bold text-white tracking-tight">{title}</h2>}
-            {description && <p className="text-sm text-slate-400 mt-1">{description}</p>}
+            {title && <h2 className="text-xl font-extrabold text-white tracking-tight">{title}</h2>}
+            {description && <p className="text-xs text-slate-400 mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-slate-800"
+            className="clay-chip p-2 text-slate-400 hover:text-white transition-colors"
             aria-label="Close dialog"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
         <div>{children}</div>

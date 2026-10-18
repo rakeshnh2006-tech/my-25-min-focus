@@ -225,15 +225,15 @@ export const AnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-[#111827] border border-slate-800 w-fit">
+        <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl clay-inset w-fit">
           {(['7d', '30d', '90d'] as const).map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold uppercase transition-all ${
+              className={`clay-chip px-3.5 py-1.5 text-xs font-bold uppercase transition-all ${
                 range === r
-                  ? 'bg-focus-500 text-white shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'clay-btn-focus shadow-md shadow-blue-500/25'
+                  : 'text-slate-400 hover:text-white'
               }`}
             >
               {r === '7d' ? '7 Days' : r === '30d' ? '30 Days' : '90 Days'}
@@ -242,7 +242,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Summary KPI Cards */}
+      {/* Summary KPI Cards (Rendered with claymorphism via StatCard) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         <StatCard
           title="Total Focused Time"
@@ -284,10 +284,10 @@ export const AnalyticsPage: React.FC = () => {
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Daily Focus Time Area Chart */}
-        <div className="lg:col-span-8 bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-4">
+        {/* Daily Focus Time Area Chart (Clay Glass Panel) */}
+        <div className="lg:col-span-8 clay-card p-6 space-y-4">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">Daily Focus Trend</h2>
+            <h2 className="text-base font-extrabold text-white tracking-tight">Daily Focus Trend</h2>
             <p className="text-xs text-slate-400">
               Focused minutes recorded per day for the selected timeframe ({range})
             </p>
@@ -299,8 +299,8 @@ export const AnalyticsPage: React.FC = () => {
                 <AreaChart data={trends} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="focusGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#4F7CFF" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#4F7CFF" stopOpacity={0.0} />
+                      <stop offset="5%" stopColor="#4E75FF" stopOpacity={0.45} />
+                      <stop offset="95%" stopColor="#4E75FF" stopOpacity={0.0} />
                     </linearGradient>
                   </defs>
                   <XAxis
@@ -319,9 +319,10 @@ export const AnalyticsPage: React.FC = () => {
                   />
                   <Tooltip
                     contentStyle={{
-                      backgroundColor: '#111827',
-                      borderColor: '#1e293b',
-                      borderRadius: '0.75rem',
+                      backgroundColor: '#0A1020',
+                      borderColor: 'rgba(255, 255, 255, 0.1)',
+                      borderRadius: '1rem',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.8)',
                       color: '#fff',
                       fontSize: '12px',
                     }}
@@ -330,29 +331,29 @@ export const AnalyticsPage: React.FC = () => {
                   <Area
                     type="monotone"
                     dataKey="minutes"
-                    stroke="#4F7CFF"
-                    strokeWidth={2.5}
+                    stroke="#4E75FF"
+                    strokeWidth={3}
                     fillOpacity={1}
                     fill="url(#focusGradient)"
                   />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center text-xs text-slate-500">
+              <div className="h-full flex items-center justify-center text-xs text-slate-400">
                 No focus data recorded in this period yet.
               </div>
             )}
           </div>
         </div>
 
-        {/* Subject Breakdown Donut Chart */}
-        <div className="lg:col-span-4 bg-[#111827] rounded-2xl p-6 border border-slate-800 flex flex-col justify-between">
+        {/* Subject Breakdown Donut Chart (Clay Glass Panel) */}
+        <div className="lg:col-span-4 clay-card p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <PieIcon className="w-4 h-4 text-blue-400" />
-              <h2 className="text-base font-bold text-white tracking-tight">Time by Subject</h2>
+              <h2 className="text-base font-extrabold text-white tracking-tight">Time by Subject</h2>
             </div>
-            <p className="text-xs text-slate-400 mb-4">Distribution of total focused hours</p>
+            <p className="text-xs text-slate-400 mb-4 font-medium">Distribution of total focused hours</p>
 
             <div className="h-48 w-full">
               {subjectsData.length > 0 && subjectsData.some((s) => s.minutes > 0) ? (
@@ -372,9 +373,10 @@ export const AnalyticsPage: React.FC = () => {
                     </Pie>
                     <Tooltip
                       contentStyle={{
-                        backgroundColor: '#111827',
-                        borderColor: '#1e293b',
-                        borderRadius: '0.75rem',
+                        backgroundColor: '#0A1020',
+                        borderColor: 'rgba(255, 255, 255, 0.1)',
+                        borderRadius: '1rem',
+                        boxShadow: '0 10px 25px -5px rgba(0,0,0,0.8)',
                         color: '#fff',
                         fontSize: '12px',
                       }}
@@ -383,7 +385,7 @@ export const AnalyticsPage: React.FC = () => {
                   </PieChart>
                 </ResponsiveContainer>
               ) : (
-                <div className="h-full flex items-center justify-center text-xs text-slate-500 text-center">
+                <div className="h-full flex items-center justify-center text-xs text-slate-400 text-center">
                   Study time by subject will display here as you complete sessions.
                 </div>
               )}
@@ -391,17 +393,17 @@ export const AnalyticsPage: React.FC = () => {
           </div>
 
           {/* Subject Legend List */}
-          <div className="pt-3 border-t border-slate-800 space-y-1.5 max-h-36 overflow-y-auto">
+          <div className="pt-3 border-t border-white/[0.08] space-y-1.5 max-h-36 overflow-y-auto">
             {subjectsData.map((sub) => (
               <div key={sub.id} className="flex items-center justify-between text-xs">
                 <div className="flex items-center space-x-2 truncate pr-2">
                   <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: sub.color }}
                   />
-                  <span className="text-slate-300 truncate">{sub.name}</span>
+                  <span className="text-slate-300 truncate font-semibold">{sub.name}</span>
                 </div>
-                <span className="font-semibold text-slate-200 flex-shrink-0">
+                <span className="font-bold text-white flex-shrink-0">
                   {sub.percentage}%
                 </span>
               </div>
@@ -410,23 +412,23 @@ export const AnalyticsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Study Activity Heatmap */}
-      <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-4">
+      {/* Study Activity Heatmap (Clay Glass Panel) */}
+      <div className="clay-card p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center space-x-2">
               <Calendar className="w-4 h-4 text-blue-400" />
-              <h2 className="text-base font-bold text-white tracking-tight">Study Heatmap (60 Days)</h2>
+              <h2 className="text-base font-extrabold text-white tracking-tight">Study Heatmap (60 Days)</h2>
             </div>
-            <p className="text-xs text-slate-400">
+            <p className="text-xs text-slate-400 font-medium">
               Consistency grid showing daily study intensity
             </p>
           </div>
 
-          <div className="flex items-center space-x-1.5 text-[11px] text-slate-400">
+          <div className="flex items-center space-x-1.5 text-[11px] text-slate-400 font-semibold">
             <span>Less</span>
             {heatmapColors.map((cls, idx) => (
-              <div key={idx} className={`w-3 h-3 rounded-sm border ${cls}`} />
+              <div key={idx} className={`w-3.5 h-3.5 rounded-sm border ${cls}`} />
             ))}
             <span>More</span>
           </div>

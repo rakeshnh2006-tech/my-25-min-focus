@@ -109,7 +109,12 @@ const AppContent: React.FC = () => {
 
   // Authenticated user -> Main App Shell
   return (
-    <div className="min-h-screen bg-background flex flex-col lg:flex-row">
+    <div className="min-h-screen bg-[#070B16] text-[#F8FAFC] flex flex-col lg:flex-row relative overflow-x-hidden selection:bg-focus-500 selection:text-white">
+      {/* Ambient Study Lighting Orbs (Optimal for optical calm and depth) */}
+      <div className="fixed top-[-10%] left-[15%] w-[650px] h-[650px] bg-gradient-to-br from-blue-600/12 via-indigo-600/8 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="fixed bottom-[-10%] right-[10%] w-[550px] h-[550px] bg-gradient-to-tl from-emerald-600/10 via-teal-600/6 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="fixed top-[45%] right-[25%] w-[400px] h-[400px] bg-gradient-to-tr from-violet-600/6 via-fuchsia-600/4 to-transparent rounded-full blur-[130px] pointer-events-none -z-10" />
+
       {/* Sidebar */}
       <Sidebar
         currentPage={currentPage}
@@ -119,14 +124,14 @@ const AppContent: React.FC = () => {
       />
 
       {/* Main Content Area */}
-      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen">
+      <div className="flex-1 lg:pl-64 flex flex-col min-h-screen relative z-10">
         <Header
           title={currentPage}
           onOpenMobile={() => setMobileSidebarOpen(true)}
           onNavigate={handleNavigate}
         />
 
-        <main className="flex-1 p-4 sm:p-8 max-w-7xl mx-auto w-full">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
           {currentPage === 'dashboard' && <Dashboard onNavigate={handleNavigate} />}
           {currentPage === 'timer' && <TimerPage />}
           {currentPage === 'tasks' && <TasksPage onNavigate={handleNavigate} />}

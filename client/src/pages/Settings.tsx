@@ -183,20 +183,20 @@ export const SettingsPage: React.FC = () => {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Section 1: Timer Durations */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-5">
-          <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
-            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-400">
+        <div className="clay-card p-6 space-y-5">
+          <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
+            <div className="p-2.5 rounded-2xl bg-blue-500/15 border border-blue-400/30 text-blue-400 shadow-inner">
               <Sliders className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Timer Durations</h2>
-              <p className="text-xs text-slate-400">Default lengths in minutes for standard intervals</p>
+              <h2 className="text-sm font-extrabold text-white">Timer Durations</h2>
+              <p className="text-xs text-slate-400 font-medium">Default lengths in minutes for standard intervals</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Focus Duration (Mins)
               </label>
               <input
@@ -205,12 +205,12 @@ export const SettingsPage: React.FC = () => {
                 max={120}
                 value={focusDuration}
                 onChange={(e) => setFocusDuration(parseInt(e.target.value, 10) || 25)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Short Break (Mins)
               </label>
               <input
@@ -219,12 +219,12 @@ export const SettingsPage: React.FC = () => {
                 max={30}
                 value={shortBreakDuration}
                 onChange={(e) => setShortBreakDuration(parseInt(e.target.value, 10) || 5)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Long Break (Mins)
               </label>
               <input
@@ -233,12 +233,12 @@ export const SettingsPage: React.FC = () => {
                 max={60}
                 value={longBreakDuration}
                 onChange={(e) => setLongBreakDuration(parseInt(e.target.value, 10) || 15)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Long Break Interval
               </label>
               <input
@@ -247,13 +247,13 @@ export const SettingsPage: React.FC = () => {
                 max={10}
                 value={longBreakInterval}
                 onChange={(e) => setLongBreakInterval(parseInt(e.target.value, 10) || 4)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
               />
-              <span className="text-[10px] text-slate-500 mt-1 block">Sessions before long break</span>
+              <span className="text-[10px] text-slate-400 mt-1 block font-medium">Sessions before long break</span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Daily Focus Target (Mins)
               </label>
               <input
@@ -263,9 +263,9 @@ export const SettingsPage: React.FC = () => {
                 step={15}
                 value={dailyGoalMinutes}
                 onChange={(e) => setDailyGoalMinutes(parseInt(e.target.value, 10) || 120)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
               />
-              <span className="text-[10px] text-slate-500 mt-1 block">
+              <span className="text-[10px] text-slate-400 mt-1 block font-medium">
                 Target: {Number((dailyGoalMinutes / 60).toFixed(1))} hours/day
               </span>
             </div>
@@ -587,7 +587,7 @@ export const SettingsPage: React.FC = () => {
           <button
             type="submit"
             disabled={isSaving}
-            className="px-8 py-3 rounded-2xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-sm shadow-md transition-all duration-200 hover:scale-105 active:scale-95 disabled:opacity-50"
+            className="clay-btn clay-btn-focus px-9 py-3.5 rounded-2xl text-sm font-extrabold shadow-xl disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save Preferences'}
           </button>

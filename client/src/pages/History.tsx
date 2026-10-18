@@ -121,9 +121,9 @@ export const HistoryPage: React.FC = () => {
         </p>
       </div>
 
-      {/* Filter Controls Bar */}
-      <div className="bg-[#111827] rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center gap-3">
-        <div className="flex items-center space-x-1.5 text-xs text-slate-400 font-semibold mr-1">
+      {/* Filter Controls Bar (Clay Glass Panel) */}
+      <div className="clay-card p-4 flex flex-wrap items-center gap-3">
+        <div className="flex items-center space-x-1.5 text-xs text-blue-400 font-bold mr-1">
           <Filter className="w-3.5 h-3.5" />
           <span>Filters:</span>
         </div>
@@ -135,7 +135,7 @@ export const HistoryPage: React.FC = () => {
             setStatusFilter(e.target.value);
             setPage(1);
           }}
-          className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-focus-500"
+          className="clay-inset-sm rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-400 cursor-pointer"
         >
           <option value="">All Statuses</option>
           <option value="COMPLETED">Completed</option>
@@ -150,7 +150,7 @@ export const HistoryPage: React.FC = () => {
             setTypeFilter(e.target.value);
             setPage(1);
           }}
-          className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-focus-500"
+          className="clay-inset-sm rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-400 cursor-pointer"
         >
           <option value="">All Session Types</option>
           <option value="FOCUS">Focus Sessions</option>
@@ -165,7 +165,7 @@ export const HistoryPage: React.FC = () => {
             setSubjectFilter(e.target.value);
             setPage(1);
           }}
-          className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-focus-500"
+          className="clay-inset-sm rounded-xl px-3.5 py-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-blue-400 cursor-pointer"
         >
           <option value="">All Subjects</option>
           {subjects.map((sub) => (
@@ -183,28 +183,28 @@ export const HistoryPage: React.FC = () => {
               setSubjectFilter('');
               setPage(1);
             }}
-            className="text-xs text-focus-400 hover:underline font-semibold ml-auto"
+            className="text-xs text-blue-400 hover:text-blue-300 font-bold ml-auto transition-colors"
           >
             Clear Filters
           </button>
         )}
       </div>
 
-      {/* Sessions Table */}
-      <div className="bg-[#111827] rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
+      {/* Sessions Table (Clay Glass Container) */}
+      <div className="clay-card overflow-hidden shadow-2xl p-0">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-800 bg-[#0d1322]/80 text-slate-400 font-semibold uppercase tracking-wider">
-                <th className="py-3.5 px-4 sm:px-6">Date & Start Time</th>
-                <th className="py-3.5 px-4">Type</th>
-                <th className="py-3.5 px-4">Subject & Task</th>
-                <th className="py-3.5 px-4">Planned Duration</th>
-                <th className="py-3.5 px-4">Actual Focused</th>
-                <th className="py-3.5 px-4 sm:px-6 text-right">Status</th>
+              <tr className="border-b border-white/[0.08] bg-slate-900/60 text-slate-400 font-bold uppercase tracking-wider">
+                <th className="py-4 px-4 sm:px-6">Date &amp; Start Time</th>
+                <th className="py-4 px-4">Type</th>
+                <th className="py-4 px-4">Subject &amp; Task</th>
+                <th className="py-4 px-4">Planned Duration</th>
+                <th className="py-4 px-4">Actual Focused</th>
+                <th className="py-4 px-4 sm:px-6 text-right">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300">
+            <tbody className="divide-y divide-white/[0.06] text-slate-300">
               {sessions.length > 0 ? (
                 sessions.map((s) => {
                   const badge = statusBadges[s.status] || statusBadges.IDLE;
@@ -212,7 +212,7 @@ export const HistoryPage: React.FC = () => {
                   const dateObj = new Date(s.startedAt || s.createdAt || Date.now());
 
                   return (
-                    <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
+                    <tr key={s.id} className="hover:bg-white/[0.04] transition-colors">
                       <td className="py-3.5 px-4 sm:px-6 font-medium text-white whitespace-nowrap">
                         <div>
                           {dateObj.toLocaleDateString('en-US', {

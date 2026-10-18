@@ -71,66 +71,67 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
   const isConfigured = status?.googleOAuth?.configured && status?.database?.connected;
 
   return (
-    <div className="min-h-screen bg-[#080D1A] flex flex-col items-center justify-center p-4 sm:p-6 text-[#F8FAFC] selection:bg-focus-500 selection:text-white relative overflow-hidden">
-      {/* Background ambient glowing mesh */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gradient-to-tr from-blue-600/10 via-indigo-600/10 to-violet-500/10 rounded-full blur-3xl pointer-events-none -z-10" />
+    <div className="min-h-screen bg-[#070B16] flex flex-col items-center justify-center p-4 sm:p-6 text-[#F8FAFC] selection:bg-focus-500 selection:text-white relative overflow-hidden">
+      {/* Background ambient glowing mesh (Optimal cool study palette) */}
+      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-bl from-emerald-600/10 via-teal-600/5 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
 
-      {/* Main Login Card */}
-      <div className="w-full max-w-md bg-[#111827] border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl relative text-center">
+      {/* Main Login Card with Claymorphism & Frosted Glass */}
+      <div className="w-full max-w-md clay-card p-8 sm:p-10 relative text-center">
         {/* Back navigation to landing page if available */}
         {onBackToApp && (
           <button
             onClick={onBackToApp}
-            className="absolute top-6 left-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            className="absolute top-6 left-6 p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             title="Back to Landing Page"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
         )}
 
-        {/* App Logo */}
+        {/* Tactile 3D App Logo Emblem */}
         <div className="relative mx-auto w-20 h-20 mb-4 flex items-center justify-center">
-          <div className="absolute inset-0 bg-blue-500/20 rounded-3xl blur-xl" />
+          <div className="absolute inset-0 bg-blue-500/25 rounded-3xl blur-xl" />
           <img
             src="/logo-256.png"
             alt="Cognify Logo"
-            className="relative w-20 h-20 rounded-2xl object-cover shadow-lg border border-blue-400/30 hover:scale-105 transition-transform duration-300"
+            className="relative w-20 h-20 rounded-2xl object-cover shadow-2xl border border-blue-400/40 hover:scale-105 transition-transform duration-300"
           />
         </div>
 
         {/* App Branding */}
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Cognify</h1>
-        <p className="text-xs font-semibold text-blue-400 tracking-wider uppercase mt-0.5">
+        <p className="text-xs font-bold text-blue-400 tracking-wider uppercase mt-0.5">
           Focus deeper. Learn smarter.
         </p>
 
         {/* Automated Welcome Line */}
-        <div className="mt-3 mb-5">
-          <p className="text-sm font-semibold text-white flex items-center justify-center gap-1.5">
+        <div className="mt-3.5 mb-5">
+          <p className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
             <span>{welcomeInfo.icon}</span>
             <span>{welcomeInfo.greeting}</span>
           </p>
           <p className="text-xs text-slate-400 mt-0.5">{welcomeInfo.subtitle}</p>
         </div>
 
-        {/* Motivational Quote Box */}
-        <div className="my-5 p-4 rounded-2xl bg-[#080D1A]/80 border border-slate-800/80 text-left relative group">
+        {/* Motivational Quote Box (Recessed Clay Well) */}
+        <div className="my-5 p-4 rounded-2xl clay-inset text-left relative group">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3 text-amber-400" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1">
+              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
               Focus Wisdom
             </span>
             <button
               onClick={handleRefreshQuote}
               title="Get another quote"
-              className="text-slate-500 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-slate-800"
+              className="text-slate-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-white/[0.08]"
               aria-label="Refresh quote"
             >
               <RefreshCw className="w-3 h-3" />
             </button>
           </div>
           <p className="text-xs text-slate-300 italic leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
-          <p className="text-[11px] font-medium text-amber-400 mt-2 text-right">&mdash; {quote.author}</p>
+          <p className="text-[11px] font-semibold text-amber-400 mt-2 text-right">&mdash; {quote.author}</p>
         </div>
 
         {/* Error Notification Alert */}
@@ -150,11 +151,11 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
           </div>
         )}
 
-        {/* Action Controls - Google Authentication */}
+        {/* Action Controls - Google Authentication (Tactile Clay Button) */}
         <div className="space-y-3 pt-1">
           <button
             onClick={handleGoogleLogin}
-            className="w-full flex items-center justify-center space-x-3 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-md transition-all hover:scale-[1.01] active:scale-[0.99]"
+            className="w-full clay-btn bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-sm py-4 rounded-2xl shadow-xl flex items-center justify-center space-x-3 transition-all"
           >
             {/* Google G SVG */}
             <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
@@ -178,7 +179,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
             <span>Sign in with Google</span>
           </button>
 
-          <p className="text-[11px] text-slate-500 pt-2">
+          <p className="text-[11px] text-slate-400 pt-2 font-medium">
             Authentication is required to sync your focus sessions, tasks, and coursework.
           </p>
         </div>

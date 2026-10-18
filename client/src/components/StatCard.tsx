@@ -14,36 +14,38 @@ export const StatCard: React.FC<StatCardProps> = ({
   value,
   subtitle,
   icon,
-  accentColor = 'text-focus-500',
+  accentColor = 'text-blue-400',
   progress,
 }) => {
   return (
-    <div className="glass-card rounded-2xl p-5 border border-slate-800/80 transition-all duration-200 hover:border-slate-700 relative overflow-hidden group">
-      <div className="flex items-center justify-between">
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-          {title}
-        </span>
-        <div className={`p-2.5 rounded-xl bg-slate-800/60 ${accentColor}`}>
-          {icon}
+    <div className="clay-card clay-card-interactive p-5 flex flex-col justify-between relative overflow-hidden group">
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">
+            {title}
+          </span>
+          <div className={`p-2.5 rounded-2xl bg-slate-900/80 border border-white/[0.08] shadow-inner ${accentColor}`}>
+            {icon}
+          </div>
         </div>
-      </div>
 
-      <div className="mt-3 flex items-baseline space-x-2">
-        <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-          {value}
-        </span>
-      </div>
+        <div className="mt-3 flex items-baseline space-x-2">
+          <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            {value}
+          </span>
+        </div>
 
-      {subtitle && (
-        <p className="mt-1 text-xs text-slate-400 flex items-center gap-1">
-          {subtitle}
-        </p>
-      )}
+        {subtitle && (
+          <p className="mt-1 text-xs text-slate-400 font-medium">
+            {subtitle}
+          </p>
+        )}
+      </div>
 
       {typeof progress === 'number' && (
-        <div className="mt-3 w-full bg-slate-800/80 rounded-full h-1.5 overflow-hidden">
+        <div className="mt-4 w-full clay-inset-sm rounded-full h-2 overflow-hidden">
           <div
-            className="bg-focus-500 h-full rounded-full transition-all duration-500"
+            className="bg-gradient-to-r from-blue-500 to-indigo-400 h-full rounded-full transition-all duration-500 shadow-sm shadow-blue-500/40"
             style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
           />
         </div>

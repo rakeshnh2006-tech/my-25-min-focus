@@ -185,7 +185,7 @@ export const SubjectsPage: React.FC = () => {
 
         <button
           onClick={openCreateModal}
-          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
+          className="clay-btn clay-btn-focus flex items-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-extrabold shadow-lg"
         >
           <Plus className="w-4 h-4" />
           <span>New Subject</span>
@@ -194,9 +194,9 @@ export const SubjectsPage: React.FC = () => {
 
       {/* Quick Starter Suggestions */}
       {subjects.length < 3 && (
-        <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-3">
+        <div className="p-5 rounded-2xl clay-card space-y-3">
           <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 text-amber-400" />
             <span>Quick Suggestions &mdash; 1-Click Setup</span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
@@ -206,14 +206,14 @@ export const SubjectsPage: React.FC = () => {
               <button
                 key={starter.name}
                 onClick={() => addStarterSubject(starter)}
-                className="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition-all group"
+                className="clay-chip p-3.5 bg-slate-900/80 border border-white/[0.08] hover:border-blue-400/40 text-left transition-all group"
               >
                 <div className="flex items-center space-x-2">
                   <span
-                    className="w-2.5 h-2.5 rounded-full flex-shrink-0"
+                    className="w-2.5 h-2.5 rounded-full flex-shrink-0 shadow-sm"
                     style={{ backgroundColor: starter.color }}
                   />
-                  <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+                  <span className="text-xs font-bold text-white group-hover:text-blue-300 transition-colors truncate">
                     + {starter.name}
                   </span>
                 </div>
@@ -233,7 +233,7 @@ export const SubjectsPage: React.FC = () => {
             return (
               <div
                 key={sub.id}
-                className="bg-[#111827] rounded-2xl p-6 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col justify-between relative overflow-hidden group"
+                className="clay-card clay-card-interactive p-6 flex flex-col justify-between relative overflow-hidden group"
               >
                 {/* Accent top color strip */}
                 <div
@@ -245,74 +245,74 @@ export const SubjectsPage: React.FC = () => {
                   <div className="flex items-start justify-between">
                     <div className="flex items-center space-x-2.5">
                       <span
-                        className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-sm"
+                        className="w-4 h-4 rounded-full flex-shrink-0 shadow-md ring-2 ring-white/10"
                         style={{ backgroundColor: sub.color }}
                       />
-                      <h2 className="text-lg font-bold text-white tracking-tight truncate">
+                      <h2 className="text-lg font-extrabold text-white tracking-tight truncate">
                         {sub.name}
                       </h2>
                     </div>
 
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1.5">
                       <button
                         onClick={() => openEditModal(sub)}
-                        className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+                        className="clay-chip p-2 text-slate-400 hover:text-white bg-slate-900/60 border border-white/[0.06] transition-colors"
                         title="Edit subject"
                       >
-                        <Edit2 className="w-4 h-4" />
+                        <Edit2 className="w-3.5 h-3.5" />
                       </button>
                       <button
                         onClick={() => setDeletingSubjectId(sub.id)}
-                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
+                        className="clay-chip p-2 text-slate-400 hover:text-rose-400 bg-slate-900/60 border border-white/[0.06] hover:bg-rose-500/10 transition-colors"
                         title="Delete subject"
                       >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
 
                   {sub.description && (
-                    <p className="text-xs text-slate-400 mt-2 line-clamp-2">
+                    <p className="text-xs text-slate-400 mt-2.5 line-clamp-2 leading-relaxed">
                       {sub.description}
                     </p>
                   )}
                 </div>
 
                 {/* Subject Statistics */}
-                <div className="mt-6 pt-4 border-t border-slate-800/80 space-y-3">
-                  <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">
+                <div className="mt-6 pt-4 border-t border-white/[0.08] space-y-3">
+                  <div className="grid grid-cols-3 gap-2.5 text-center">
+                    <div className="clay-inset-sm p-2.5 rounded-xl">
+                      <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                         Study Time
                       </span>
-                      <span className="text-xs font-bold text-white mt-0.5 block">
+                      <span className="text-xs font-extrabold text-white mt-0.5 block">
                         {totalHours}h
                       </span>
                     </div>
 
-                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">
+                    <div className="clay-inset-sm p-2.5 rounded-xl">
+                      <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                         Sessions
                       </span>
-                      <span className="text-xs font-bold text-blue-400 mt-0.5 block">
+                      <span className="text-xs font-extrabold text-blue-400 mt-0.5 block">
                         {sub.completedSessionsCount || 0}
                       </span>
                     </div>
 
-                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                      <span className="block text-[10px] text-slate-400 uppercase font-semibold">
+                    <div className="clay-inset-sm p-2.5 rounded-xl">
+                      <span className="block text-[10px] text-slate-400 uppercase font-bold tracking-wider">
                         Tasks
                       </span>
-                      <span className="text-xs font-bold text-slate-300 mt-0.5 block">
+                      <span className="text-xs font-extrabold text-slate-300 mt-0.5 block">
                         {sub.taskCount || 0}
                       </span>
                     </div>
                   </div>
 
                   {weeklyHoursGoal > 0 && (
-                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1 font-medium">
                       <span>Weekly Goal:</span>
-                      <span className="font-semibold text-slate-200">
+                      <span className="font-bold text-slate-200">
                         {weeklyHoursGoal} hours / week
                       </span>
                     </div>
@@ -355,7 +355,7 @@ export const SubjectsPage: React.FC = () => {
           )}
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Subject Name *
             </label>
             <input
@@ -364,12 +364,12 @@ export const SubjectsPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Distributed Systems"
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500"
+              className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Description (Optional)
             </label>
             <textarea
@@ -377,12 +377,12 @@ export const SubjectsPage: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Course code, professor, or notes..."
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500 resize-none"
+              className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400 resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
               Subject Color
             </label>
             <div className="flex flex-wrap gap-2.5">
@@ -402,7 +402,7 @@ export const SubjectsPage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+            <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
               Weekly Study Goal (Hours)
             </label>
             <input
@@ -411,7 +411,7 @@ export const SubjectsPage: React.FC = () => {
               max={60}
               value={weeklyGoalHours}
               onChange={(e) => setWeeklyGoalHours(parseInt(e.target.value, 10) || 0)}
-              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+              className="w-full clay-inset rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-blue-400"
             />
           </div>
 
@@ -419,13 +419,13 @@ export const SubjectsPage: React.FC = () => {
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
-              className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-white"
+              className="clay-chip px-4 py-2 text-xs font-bold text-slate-400 hover:text-white"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
+              className="clay-btn clay-btn-focus px-6 py-2.5 rounded-xl text-xs font-extrabold shadow-lg"
             >
               {editingSubject ? 'Save Changes' : 'Create Subject'}
             </button>

@@ -1,12 +1,13 @@
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
-import { SessionType, SessionStatus, FocusSession } from '../types';
+import { SessionType, TimerMode, SessionStatus, FocusSession, TimerPreset } from '../types';
 import { apiRequest } from '../lib/api';
 import { soundManager } from '../lib/sound';
+import { LocalStorageRepository } from '../lib/storage';
 import { useAuth } from './AuthContext';
 
 interface TimerContextType {
   status: SessionStatus;
-  mode: SessionType;
+  mode: TimerMode;
   secondsRemaining: number;
   totalDuration: number;
   cycleCount: number; // 1 to 4
@@ -16,7 +17,12 @@ interface TimerContextType {
   soundEnabled: boolean;
   notificationsEnabled: boolean;
   showCompletionModal: boolean;
-  lastCompletedMode: SessionType | null;
+  lastCompletedMode: TimerMode | null;
+  activePreset: TimerPreset;
+  stopwatchElapsedSeconds: number;
+  isRainPlaying: boolean;
+  rainVolume: number;
+  isPiPActive: boolean;
 
   startTimer: () => Promise<void>;
   pauseTimer: () => Promise<void>;
@@ -24,22 +30,35 @@ interface TimerContextType {
   resetTimer: () => Promise<void>;
   skipSession: () => Promise<void>;
   abandonSession: () => Promise<void>;
-  switchMode: (newMode: SessionType) => void;
+  switchMode: (newMode: TimerMode) => void;
+  applyPreset: (preset: TimerPreset) => void;
   setSelectedSubjectId: (id: string | null) => void;
   setSelectedTaskId: (id: string | null) => void;
   setSoundEnabled: (enabled: boolean) => void;
   setNotificationsEnabled: (enabled: boolean) => void;
   closeCompletionModal: () => void;
   proceedToNextSession: () => void;
+  toggleRain: () => void;
+  setRainVolume: (volume: number) => void;
+  togglePiP: () => Promise<void>;
 }
 
 const TimerContext = createContext<TimerContextType | undefined>(undefined);
 
+const PRESET_DURATIONS: Record<TimerPreset, { focus: number; shortBreak: number; longBreak: number }> = {
+  '25/5': { focus: 25, shortBreak: 5, longBreak: 15 },
+  '50/10': { focus: 50, shortBreak: 10, longBreak: 20 },
+  '60/10': { focus: 60, shortBreak: 10, longBreak: 25 },
+  '90/20': { focus: 90, shortBreak: 20, longBreak: 30 },
+  custom: { focus: 25, shortBreak: 5, longBreak: 15 },
+};
+
 export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, preference, updatePreferences } = useAuth();
 
-  const [mode, setMode] = useState<SessionType>('FOCUS');
+  const [mode, setMode] = useState<TimerMode>('FOCUS');
   const [status, setStatus] = useState<SessionStatus>('IDLE');
+  const [activePreset, setActivePreset] = useState<TimerPreset>(preference?.activePreset || '25/5');
   const [activeSession, setActiveSession] = useState<FocusSession | null>(null);
 
   const [selectedSubjectId, setSelectedSubjectId] = useState<string | null>(null);
@@ -47,12 +66,25 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const [cycleCount, setCycleCount] = useState<number>(1);
   const [showCompletionModal, setShowCompletionModal] = useState<boolean>(false);
-  const [lastCompletedMode, setLastCompletedMode] = useState<SessionType | null>(null);
+  const [lastCompletedMode, setLastCompletedMode] = useState<TimerMode | null>(null);
 
-  // Preference derived durations (in seconds)
-  const focusDurationSecs = (preference?.focusDuration || 25) * 60;
-  const shortBreakDurationSecs = (preference?.shortBreakDuration || 5) * 60;
-  const longBreakDurationSecs = (preference?.longBreakDuration || 15) * 60;
+  // Stopwatch state
+  const [stopwatchElapsedSeconds, setStopwatchElapsedSeconds] = useState<number>(0);
+
+  // Ambient rain sound state
+  const [isRainPlaying, setIsRainPlaying] = useState<boolean>(false);
+  const [rainVolume, setRainVolumeState] = useState<number>(preference?.ambientVolume ?? 0.5);
+
+  // Picture in picture state
+  const [isPiPActive, setIsPiPActive] = useState<boolean>(false);
+  const pipCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const pipVideoRef = useRef<HTMLVideoElement | null>(null);
+
+  // Preset or preference derived durations (in seconds)
+  const currentDurations = PRESET_DURATIONS[activePreset] || PRESET_DURATIONS['25/5'];
+  const focusDurationSecs = (preference?.focusDuration || currentDurations.focus) * 60;
+  const shortBreakDurationSecs = (preference?.shortBreakDuration || currentDurations.shortBreak) * 60;
+  const longBreakDurationSecs = (preference?.longBreakDuration || currentDurations.longBreak) * 60;
   const longBreakInterval = preference?.longBreakInterval || 4;
 
   const [totalDuration, setTotalDuration] = useState<number>(focusDurationSecs);
@@ -75,20 +107,37 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } else if (mode === 'LONG_BREAK') {
         setTotalDuration(longBreakDurationSecs);
         setSecondsRemaining(longBreakDurationSecs);
+      } else if (mode === 'STOPWATCH') {
+        setTotalDuration(0);
+        setSecondsRemaining(0);
       }
     }
-  }, [mode, status, focusDurationSecs, shortBreakDurationSecs, longBreakDurationSecs]);
+  }, [mode, status, focusDurationSecs, shortBreakDurationSecs, longBreakDurationSecs, activePreset]);
 
-  // Clock calculation references
+  // Wall clock calculation references
   const targetEndRef = useRef<number | null>(null);
   const pauseStartRef = useRef<number | null>(null);
   const intervalIdRef = useRef<any>(null);
+  const stopwatchStartRef = useRef<number | null>(null);
+
+  // Browser Tab Countdown Synchronization
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+    if (status === 'RUNNING' || status === 'PAUSED') {
+      const mins = Math.floor(secondsRemaining / 60);
+      const secs = secondsRemaining % 60;
+      const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+      const prefix = status === 'PAUSED' ? '❚❚ ' : '';
+      const modeLabel = mode === 'FOCUS' ? 'Focus' : mode === 'STOPWATCH' ? 'Stopwatch' : 'Break';
+      document.title = `${prefix}(${timeStr}) Cognify • ${modeLabel}`;
+    } else {
+      document.title = 'Cognify — Focus deeper. Learn smarter.';
+    }
+  }, [secondsRemaining, status, mode]);
 
   const setSoundEnabled = (enabled: boolean) => {
     setSoundEnabledState(enabled);
-    if (preference) {
-      updatePreferences({ soundEnabled: enabled }).catch(() => {});
-    }
+    updatePreferences({ soundEnabled: enabled }).catch(() => {});
   };
 
   const setNotificationsEnabled = async (enabled: boolean) => {
@@ -96,16 +145,54 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         setNotificationsEnabledState(true);
-        if (preference) {
-          updatePreferences({ notificationsEnabled: true }).catch(() => {});
-        }
+        updatePreferences({ notificationsEnabled: true }).catch(() => {});
       } else {
         setNotificationsEnabledState(false);
       }
     } else {
       setNotificationsEnabledState(false);
-      if (preference) {
-        updatePreferences({ notificationsEnabled: false }).catch(() => {});
+      updatePreferences({ notificationsEnabled: false }).catch(() => {});
+    }
+  };
+
+  // Ambient Rain Controls
+  const toggleRain = () => {
+    if (isRainPlaying) {
+      soundManager.stopRain();
+      setIsRainPlaying(false);
+    } else {
+      soundManager.startRain(rainVolume);
+      setIsRainPlaying(true);
+    }
+  };
+
+  const setRainVolume = (volume: number) => {
+    setRainVolumeState(volume);
+    soundManager.setRainVolume(volume);
+    updatePreferences({ ambientVolume: volume }).catch(() => {});
+  };
+
+  // Preset Switcher
+  const applyPreset = (preset: TimerPreset) => {
+    setActivePreset(preset);
+    const d = PRESET_DURATIONS[preset] || PRESET_DURATIONS['25/5'];
+    updatePreferences({
+      activePreset: preset,
+      focusDuration: d.focus,
+      shortBreakDuration: d.shortBreak,
+      longBreakDuration: d.longBreak,
+    }).catch(() => {});
+
+    if (status === 'IDLE') {
+      if (mode === 'FOCUS') {
+        setTotalDuration(d.focus * 60);
+        setSecondsRemaining(d.focus * 60);
+      } else if (mode === 'SHORT_BREAK') {
+        setTotalDuration(d.shortBreak * 60);
+        setSecondsRemaining(d.shortBreak * 60);
+      } else if (mode === 'LONG_BREAK') {
+        setTotalDuration(d.longBreak * 60);
+        setSecondsRemaining(d.longBreak * 60);
       }
     }
   };
@@ -135,21 +222,32 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             ? 'Awesome work! Take a well-deserved break to recharge.'
             : 'Ready to get back in the flow? Start your next focus interval.';
         try {
-          new Notification(title, { body, icon: '/favicon.ico' });
+          new Notification(title, { body, icon: '/favicon.png' });
         } catch {
-          // Ignore notification display failures
+          // ignore
         }
       }
     }
 
-    // Save session completion to backend
-    if (activeSession) {
+    // Save session completion (Unified offline & cloud)
+    const duration = totalDuration;
+    if (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK') {
+      LocalStorageRepository.recordCompletedSession(
+        mode as SessionType,
+        duration,
+        selectedSubjectId,
+        selectedTaskId
+      );
+    }
+
+    if (activeSession && user && !user.isGuest) {
       try {
         await apiRequest(`/api/sessions/${activeSession.id}/complete`, {
           method: 'POST',
+          body: JSON.stringify({ actualDuration: duration }),
         });
       } catch (err) {
-        console.error('Failed to complete session on server:', err);
+        console.warn('Failed to complete session on server (persisted locally):', err);
       }
     }
 
@@ -159,10 +257,18 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     }
 
     setShowCompletionModal(true);
-  }, [mode, activeSession, soundEnabled, notificationsEnabled, longBreakInterval]);
+  }, [mode, activeSession, totalDuration, selectedSubjectId, selectedTaskId, user, soundEnabled, notificationsEnabled, longBreakInterval]);
 
   // Tick calculation based on wall clock
   const updateTick = useCallback(() => {
+    if (mode === 'STOPWATCH') {
+      if (!stopwatchStartRef.current) return;
+      const elapsed = Math.floor((Date.now() - stopwatchStartRef.current) / 1000);
+      setStopwatchElapsedSeconds(elapsed);
+      setSecondsRemaining(elapsed);
+      return;
+    }
+
     if (!targetEndRef.current) return;
     const now = Date.now();
     const remaining = Math.max(0, Math.ceil((targetEndRef.current - now) / 1000));
@@ -171,9 +277,9 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     if (remaining <= 0) {
       handleSessionComplete();
     }
-  }, [handleSessionComplete]);
+  }, [mode, handleSessionComplete]);
 
-  // Handle visibility change (drifting tabs / sleep)
+  // Tab visibility change recovery
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && status === 'RUNNING') {
@@ -196,205 +302,169 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
   }, [status, updateTick]);
 
-  // Restore active session from backend on user login
-  useEffect(() => {
-    if (!user) return;
-
-    let isMounted = true;
-    apiRequest<{ session: FocusSession | null }>('/api/sessions/active')
-      .then((data) => {
-        if (!isMounted) return;
-        const session = data.session;
-        if (session) {
-          setActiveSession(session);
-          setMode(session.sessionType);
-          setTotalDuration(session.plannedDuration);
-          if (session.subjectId) setSelectedSubjectId(session.subjectId);
-          if (session.taskId) setSelectedTaskId(session.taskId);
-
-          const now = Date.now();
-          if (session.status === 'RUNNING' && session.targetEndAt) {
-            const targetMs = new Date(session.targetEndAt).getTime();
-            targetEndRef.current = targetMs;
-            const remaining = Math.max(0, Math.ceil((targetMs - now) / 1000));
-            setSecondsRemaining(remaining);
-            if (remaining > 0) {
-              setStatus('RUNNING');
-            } else {
-              setStatus('COMPLETED');
-            }
-          } else if (session.status === 'PAUSED') {
-            setStatus('PAUSED');
-            if (session.targetEndAt) {
-              const targetMs = new Date(session.targetEndAt).getTime();
-              targetEndRef.current = targetMs;
-              const remaining = Math.max(0, Math.ceil((targetMs - now) / 1000));
-              setSecondsRemaining(remaining);
-            }
-          }
-        }
-      })
-      .catch((err) => {
-        console.warn('Could not restore active session:', err);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [user]);
-
   // Timer controls
   const startTimer = async () => {
+    soundManager.playTick();
     const duration =
       mode === 'FOCUS'
         ? focusDurationSecs
         : mode === 'SHORT_BREAK'
         ? shortBreakDurationSecs
-        : longBreakDurationSecs;
+        : mode === 'LONG_BREAK'
+        ? longBreakDurationSecs
+        : 0;
 
     setTotalDuration(duration);
     setSecondsRemaining(duration);
 
     const now = Date.now();
+
+    if (mode === 'STOPWATCH') {
+      stopwatchStartRef.current = now;
+      setStopwatchElapsedSeconds(0);
+      setStatus('RUNNING');
+      return;
+    }
+
     targetEndRef.current = now + duration * 1000;
     setStatus('RUNNING');
 
-    try {
-      const data = await apiRequest<{ session: FocusSession }>('/api/sessions', {
-        method: 'POST',
-        body: JSON.stringify({
-          sessionType: mode,
-          plannedDuration: duration,
-          subjectId: selectedSubjectId,
-          taskId: selectedTaskId,
-        }),
-      });
-      setActiveSession(data.session);
-    } catch (err) {
-      console.error('Failed to create session on server:', err);
+    // Cloud session creation if authenticated
+    if (user && !user.isGuest && (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK')) {
+      try {
+        const data = await apiRequest<{ session: FocusSession }>('/api/sessions', {
+          method: 'POST',
+          body: JSON.stringify({
+            sessionType: mode,
+            plannedDuration: duration,
+            subjectId: selectedSubjectId || undefined,
+            taskId: selectedTaskId || undefined,
+          }),
+        });
+        setActiveSession(data.session);
+      } catch (err) {
+        console.warn('Could not record session initiation on cloud API:', err);
+      }
     }
   };
 
   const pauseTimer = async () => {
+    soundManager.playTick();
     if (status !== 'RUNNING') return;
     setStatus('PAUSED');
     pauseStartRef.current = Date.now();
 
-    if (activeSession) {
+    if (activeSession && user && !user.isGuest) {
       try {
-        const data = await apiRequest<{ session: FocusSession }>(`/api/sessions/${activeSession.id}`, {
+        await apiRequest(`/api/sessions/${activeSession.id}`, {
           method: 'PATCH',
           body: JSON.stringify({ action: 'PAUSE' }),
         });
-        setActiveSession(data.session);
       } catch (err) {
-        console.error('Failed to pause session on server:', err);
+        console.warn('Could not update pause on cloud server:', err);
       }
     }
   };
 
   const resumeTimer = async () => {
+    soundManager.playTick();
     if (status !== 'PAUSED') return;
 
+    const now = Date.now();
+    if (mode === 'STOPWATCH') {
+      if (pauseStartRef.current && stopwatchStartRef.current) {
+        const pausedMs = now - pauseStartRef.current;
+        stopwatchStartRef.current += pausedMs;
+      }
+      setStatus('RUNNING');
+      return;
+    }
+
     if (pauseStartRef.current && targetEndRef.current) {
-      const pausedMs = Date.now() - pauseStartRef.current;
-      targetEndRef.current += pausedMs;
+      const pauseDuration = now - pauseStartRef.current;
+      targetEndRef.current += pauseDuration;
     }
     pauseStartRef.current = null;
     setStatus('RUNNING');
 
-    if (activeSession) {
+    if (activeSession && user && !user.isGuest) {
       try {
-        const data = await apiRequest<{ session: FocusSession }>(`/api/sessions/${activeSession.id}`, {
+        await apiRequest(`/api/sessions/${activeSession.id}`, {
           method: 'PATCH',
           body: JSON.stringify({ action: 'RESUME' }),
         });
-        setActiveSession(data.session);
       } catch (err) {
-        console.error('Failed to resume session on server:', err);
+        console.warn('Could not update resume on cloud server:', err);
       }
     }
   };
 
   const resetTimer = async () => {
-    if (activeSession && (status === 'RUNNING' || status === 'PAUSED')) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
-      } catch (err) {
-        console.error('Failed to abandon session on reset:', err);
-      }
-    }
-
+    soundManager.playTick();
     if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    setStatus('IDLE');
     targetEndRef.current = null;
     pauseStartRef.current = null;
-    setActiveSession(null);
-    setStatus('IDLE');
+    stopwatchStartRef.current = null;
+    setStopwatchElapsedSeconds(0);
 
-    const duration =
+    const defaultDuration =
       mode === 'FOCUS'
         ? focusDurationSecs
         : mode === 'SHORT_BREAK'
         ? shortBreakDurationSecs
-        : longBreakDurationSecs;
-    setTotalDuration(duration);
-    setSecondsRemaining(duration);
+        : mode === 'LONG_BREAK'
+        ? longBreakDurationSecs
+        : 0;
+    setSecondsRemaining(defaultDuration);
+    setTotalDuration(defaultDuration);
+
+    if (activeSession && user && !user.isGuest) {
+      try {
+        await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
+      } catch {
+        // ignore
+      }
+    }
+    setActiveSession(null);
   };
 
   const abandonSession = async () => {
-    if (activeSession) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
-      } catch (err) {
-        console.error('Failed to abandon session:', err);
-      }
-    }
     await resetTimer();
   };
 
   const skipSession = async () => {
-    if (activeSession) {
-      try {
-        await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
-      } catch (err) {
-        console.error('Failed to abandon skipped session:', err);
-      }
-    }
+    soundManager.playTick();
+    if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    setStatus('IDLE');
 
-    // Switch to recommended next mode
+    // Cycle modes
     if (mode === 'FOCUS') {
-      const nextMode = cycleCount >= longBreakInterval ? 'LONG_BREAK' : 'SHORT_BREAK';
-      switchMode(nextMode);
+      if (cycleCount >= longBreakInterval) {
+        switchMode('LONG_BREAK');
+      } else {
+        switchMode('SHORT_BREAK');
+      }
     } else {
       switchMode('FOCUS');
     }
   };
 
-  const switchMode = (newMode: SessionType) => {
-    if (status === 'RUNNING' || status === 'PAUSED') {
-      if (!window.confirm('Switching modes will abandon your active session. Proceed?')) {
-        return;
-      }
-      if (activeSession) {
-        apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' }).catch(() => {});
-      }
-    }
-
+  const switchMode = (newMode: TimerMode) => {
     if (intervalIdRef.current) clearInterval(intervalIdRef.current);
+    setMode(newMode);
+    setStatus('IDLE');
     targetEndRef.current = null;
     pauseStartRef.current = null;
-    setActiveSession(null);
-    setStatus('IDLE');
-    setMode(newMode);
+    stopwatchStartRef.current = null;
 
-    const duration =
-      newMode === 'FOCUS'
-        ? focusDurationSecs
-        : newMode === 'SHORT_BREAK'
-        ? shortBreakDurationSecs
-        : longBreakDurationSecs;
-    setTotalDuration(duration);
-    setSecondsRemaining(duration);
+    let newDuration = focusDurationSecs;
+    if (newMode === 'SHORT_BREAK') newDuration = shortBreakDurationSecs;
+    if (newMode === 'LONG_BREAK') newDuration = longBreakDurationSecs;
+    if (newMode === 'STOPWATCH') newDuration = 0;
+
+    setTotalDuration(newDuration);
+    setSecondsRemaining(newDuration);
   };
 
   const closeCompletionModal = () => {
@@ -404,10 +474,123 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const proceedToNextSession = () => {
     setShowCompletionModal(false);
     if (lastCompletedMode === 'FOCUS') {
-      const nextMode = cycleCount === 1 ? 'LONG_BREAK' : 'SHORT_BREAK';
-      switchMode(nextMode);
+      if (cycleCount === 1) {
+        switchMode('LONG_BREAK');
+      } else {
+        switchMode('SHORT_BREAK');
+      }
     } else {
       switchMode('FOCUS');
+    }
+  };
+
+  // Picture in Picture Canvas Engine
+  const updatePiPCanvas = useCallback(() => {
+    if (!pipCanvasRef.current) return;
+    const canvas = pipCanvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const w = canvas.width;
+    const h = canvas.height;
+    ctx.clearRect(0, 0, w, h);
+
+    // Background
+    ctx.fillStyle = '#080D1A';
+    ctx.fillRect(0, 0, w, h);
+
+    // Circular Ring
+    const centerX = w / 2;
+    const centerY = h / 2 - 20;
+    const radius = 100;
+
+    // Track ring
+    ctx.strokeStyle = '#1E293B';
+    ctx.lineWidth = 14;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // Progress ring
+    const progress = totalDuration > 0 ? (totalDuration - secondsRemaining) / totalDuration : 0;
+    const color = mode === 'FOCUS' ? '#4F7CFF' : mode === 'SHORT_BREAK' ? '#10B981' : '#7C3AED';
+    ctx.strokeStyle = color;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * (1 - progress));
+    ctx.stroke();
+
+    // Time text
+    const mins = Math.floor(secondsRemaining / 60);
+    const secs = secondsRemaining % 60;
+    const timeStr = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    ctx.fillStyle = '#F8FAFC';
+    ctx.font = 'bold 44px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(timeStr, centerX, centerY);
+
+    // Mode label
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '600 16px Inter, sans-serif';
+    const label = mode === 'FOCUS' ? 'FOCUS' : mode === 'STOPWATCH' ? 'STOPWATCH' : 'BREAK';
+    ctx.fillText(label, centerX, centerY + 35);
+
+    // Status footer
+    ctx.fillStyle = status === 'RUNNING' ? '#10B981' : status === 'PAUSED' ? '#F59E0B' : '#64748B';
+    ctx.font = 'bold 14px Inter, sans-serif';
+    ctx.fillText(status, centerX, h - 35);
+  }, [secondsRemaining, totalDuration, mode, status]);
+
+  useEffect(() => {
+    if (isPiPActive) {
+      updatePiPCanvas();
+    }
+  }, [isPiPActive, updatePiPCanvas]);
+
+  const togglePiP = async () => {
+    if (typeof document === 'undefined') return;
+
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+      setIsPiPActive(false);
+      return;
+    }
+
+    try {
+      if (!pipCanvasRef.current) {
+        const canvas = document.createElement('canvas');
+        canvas.width = 320;
+        canvas.height = 320;
+        pipCanvasRef.current = canvas;
+      }
+      updatePiPCanvas();
+
+      if (!pipVideoRef.current) {
+        const video = document.createElement('video');
+        video.muted = true;
+        video.width = 320;
+        video.height = 320;
+        pipVideoRef.current = video;
+      }
+
+      const video = pipVideoRef.current;
+      const stream = (pipCanvasRef.current as any).captureStream(10);
+      video.srcObject = stream;
+      await video.play();
+      await video.requestPictureInPicture();
+      setIsPiPActive(true);
+
+      video.addEventListener(
+        'leavepictureinpicture',
+        () => {
+          setIsPiPActive(false);
+        },
+        { once: true }
+      );
+    } catch (err) {
+      console.warn('Picture in Picture failed to launch:', err);
+      setIsPiPActive(false);
     }
   };
 
@@ -426,6 +609,12 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         notificationsEnabled,
         showCompletionModal,
         lastCompletedMode,
+        activePreset,
+        stopwatchElapsedSeconds,
+        isRainPlaying,
+        rainVolume,
+        isPiPActive,
+
         startTimer,
         pauseTimer,
         resumeTimer,
@@ -433,12 +622,16 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         skipSession,
         abandonSession,
         switchMode,
+        applyPreset,
         setSelectedSubjectId,
         setSelectedTaskId,
         setSoundEnabled,
         setNotificationsEnabled,
         closeCompletionModal,
         proceedToNextSession,
+        toggleRain,
+        setRainVolume,
+        togglePiP,
       }}
     >
       {children}

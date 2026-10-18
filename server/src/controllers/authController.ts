@@ -62,6 +62,7 @@ export async function getMe(req: Request, res: Response) {
 export function logout(req: Request, res: Response) {
   const isHtml = req.accepts && req.accepts('html') && !req.xhr && req.headers['sec-fetch-dest'] === 'document';
   const finalize = () => {
+    res.clearCookie('cognify.sid', { path: '/' });
     res.clearCookie('focusflow.sid', { path: '/' });
     if (isHtml) {
       const loginUrl = (process.env.VERCEL || !process.env.CLIENT_URL) ? '/login' : `${process.env.CLIENT_URL}/login`;

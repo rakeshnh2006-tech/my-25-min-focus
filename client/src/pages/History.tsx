@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  History as HistoryIcon,
   Filter,
   ChevronLeft,
   ChevronRight,
@@ -13,10 +12,11 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../lib/api';
+import { LocalStorageRepository } from '../lib/storage';
 import { FocusSession } from '../types';
 
 export const HistoryPage: React.FC = () => {
-  const { subjects } = useAuth();
+  const { user, subjects } = useAuth();
 
   const [sessions, setSessions] = useState<FocusSession[]>([]);
   const [total, setTotal] = useState(0);
@@ -32,6 +32,25 @@ export const HistoryPage: React.FC = () => {
 
   const fetchHistory = useCallback(async () => {
     setIsLoading(true);
+
+    if (user?.isGuest) {
+      let local = LocalStorageRepository.getSessions();
+      if (statusFilter) local = local.filter((s) => s.status === statusFilter);
+      if (typeFilter) local = local.filter((s) => s.sessionType === typeFilter);
+      if (subjectFilter) local = local.filter((s) => s.subjectId === subjectFilter);
+
+      const totalCount = local.length;
+      const pages = Math.ceil(totalCount / limit) || 1;
+      const startIndex = (page - 1) * limit;
+      const pageSessions = local.slice(startIndex, startIndex + limit);
+
+      setSessions(pageSessions);
+      setTotal(totalCount);
+      setTotalPages(pages);
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -49,12 +68,25 @@ export const HistoryPage: React.FC = () => {
       setSessions(data.sessions);
       setTotal(data.pagination.total);
       setTotalPages(data.pagination.totalPages || 1);
-    } catch (err) {
-      console.error('Failed to fetch history:', err);
+    } catch {
+      // Offline fallback
+      let local = LocalStorageRepository.getSessions();
+      if (statusFilter) local = local.filter((s) => s.status === statusFilter);
+      if (typeFilter) local = local.filter((s) => s.sessionType === typeFilter);
+      if (subjectFilter) local = local.filter((s) => s.subjectId === subjectFilter);
+
+      const totalCount = local.length;
+      const pages = Math.ceil(totalCount / limit) || 1;
+      const startIndex = (page - 1) * limit;
+      const pageSessions = local.slice(startIndex, startIndex + limit);
+
+      setSessions(pageSessions);
+      setTotal(totalCount);
+      setTotalPages(pages);
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, statusFilter, typeFilter, subjectFilter]);
+  }, [page, limit, statusFilter, typeFilter, subjectFilter, user?.isGuest]);
 
   useEffect(() => {
     fetchHistory();
@@ -68,12 +100,12 @@ export const HistoryPage: React.FC = () => {
   const statusBadges = {
     COMPLETED: {
       label: 'Completed',
-      class: 'bg-break-short/10 text-break-short border-break-short/20',
+      class: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
       icon: CheckCircle2,
     },
     ABANDONED: {
       label: 'Abandoned',
-      class: 'bg-red-500/10 text-red-400 border-red-500/20',
+      class: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
       icon: XCircle,
     },
     SKIPPED: {
@@ -83,7 +115,7 @@ export const HistoryPage: React.FC = () => {
     },
     RUNNING: {
       label: 'Active',
-      class: 'bg-focus-500/10 text-focus-400 border-focus-500/20',
+      class: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
       icon: Clock,
     },
     PAUSED: {
@@ -102,14 +134,14 @@ export const HistoryPage: React.FC = () => {
     <div className="space-y-6 animate-in fade-in duration-300">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">Session History</h1>
-        <p className="text-xs text-slate-400">
-          Complete, verifiable audit log of every study interval and break taken.
+        <h1 className="text-2xl font-extrabold text-[#F8FAFC] tracking-tight">Session History</h1>
+        <p className="text-xs text-[#94A3B8]">
+          Complete, verifiable log of every study interval and break taken.
         </p>
       </div>
 
       {/* Filter Controls Bar */}
-      <div className="glass-card rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center gap-3">
+      <div className="bg-[#111827] rounded-2xl p-4 border border-slate-800 flex flex-wrap items-center gap-3">
         <div className="flex items-center space-x-1.5 text-xs text-slate-400 font-semibold mr-1">
           <Filter className="w-3.5 h-3.5" />
           <span>Filters:</span>
@@ -178,7 +210,7 @@ export const HistoryPage: React.FC = () => {
       </div>
 
       {/* Sessions Table */}
-      <div className="glass-card rounded-2xl border border-slate-800/80 overflow-hidden">
+      <div className="bg-[#111827] rounded-2xl border border-slate-800 overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
@@ -196,7 +228,7 @@ export const HistoryPage: React.FC = () => {
                 sessions.map((s) => {
                   const badge = statusBadges[s.status] || statusBadges.IDLE;
                   const StatusIcon = badge.icon;
-                  const dateObj = new Date(s.startedAt);
+                  const dateObj = new Date(s.startedAt || s.createdAt || Date.now());
 
                   return (
                     <tr key={s.id} className="hover:bg-slate-800/30 transition-colors">
@@ -216,9 +248,9 @@ export const HistoryPage: React.FC = () => {
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="inline-flex items-center space-x-1.5 font-semibold text-white">
                           {s.sessionType === 'FOCUS' ? (
-                            <Sparkles className="w-3.5 h-3.5 text-focus-400" />
+                            <Sparkles className="w-3.5 h-3.5 text-blue-400" />
                           ) : (
-                            <Coffee className="w-3.5 h-3.5 text-break-short" />
+                            <Coffee className="w-3.5 h-3.5 text-emerald-400" />
                           )}
                           <span>
                             {s.sessionType === 'FOCUS'
@@ -236,7 +268,7 @@ export const HistoryPage: React.FC = () => {
                             <span
                               className="text-[10px] font-semibold px-2 py-0.5 rounded w-fit"
                               style={{
-                                backgroundColor: `${s.subject.color}15`,
+                                backgroundColor: `${s.subject.color}20`,
                                 color: s.subject.color,
                               }}
                             >
@@ -254,11 +286,11 @@ export const HistoryPage: React.FC = () => {
                       </td>
 
                       <td className="py-3.5 px-4 font-mono text-slate-400 whitespace-nowrap">
-                        {formatSeconds(s.plannedDuration)}
+                        {formatSeconds(s.plannedDuration || 1500)}
                       </td>
 
                       <td className="py-3.5 px-4 font-mono font-bold text-white whitespace-nowrap">
-                        {formatSeconds(s.actualDuration)}
+                        {formatSeconds(s.actualDuration || 0)}
                       </td>
 
                       <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
@@ -284,7 +316,7 @@ export const HistoryPage: React.FC = () => {
         </div>
 
         {/* Pagination Bar */}
-        <div className="p-4 border-t border-slate-800/80 bg-[#0d1322]/50 flex items-center justify-between text-xs text-slate-400">
+        <div className="p-4 border-t border-slate-800 bg-[#0d1322]/50 flex items-center justify-between text-xs text-slate-400">
           <span>
             Showing {sessions.length} of {total} sessions
           </span>

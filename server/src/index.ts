@@ -5,7 +5,7 @@ import { checkDatabaseConnection } from './config/db';
 if (!process.env.VERCEL) {
   app.listen(env.PORT, async () => {
     console.log(`\n======================================================`);
-    console.log(`  🚀 FocusFlow Server running at http://localhost:${env.PORT}`);
+    console.log(`  🚀 Cognify Server running at http://localhost:${env.PORT}`);
     console.log(`  🌐 Client configured at ${env.CLIENT_URL}`);
     console.log(`======================================================`);
 

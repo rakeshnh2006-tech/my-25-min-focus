@@ -1,8 +1,8 @@
 {
-  "name": "focusflow-server",
+  "name": "cognify-server",
   "version": "1.0.0",
   "private": true,
-  "description": "FocusFlow Backend API Server with Google OAuth, Sessions, and Prisma ORM",
+  "description": "Cognify Backend API Server with Google OAuth, Sessions, and Prisma ORM",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

@@ -11,7 +11,7 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [theme, setThemeState] = useState<AppTheme>(() => {
-    const saved = localStorage.getItem('focusflow_theme') as AppTheme;
+    const saved = (localStorage.getItem('cognify_theme') || localStorage.getItem('focusflow_theme')) as AppTheme;
     return saved || 'dark';
   });
 
@@ -43,7 +43,7 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const setTheme = (newTheme: AppTheme) => {
     setThemeState(newTheme);
-    localStorage.setItem('focusflow_theme', newTheme);
+    localStorage.setItem('cognify_theme', newTheme);
   };
 
   return (

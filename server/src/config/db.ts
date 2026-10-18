@@ -18,12 +18,15 @@ export async function checkDatabaseConnection(): Promise<{ connected: boolean; e
   if (!isDatabaseConfigured()) {
     return {
       connected: false,
-      error: 'DATABASE_URL is not configured or uses placeholder credentials.',
+      error: 'DATABASE_URL is not configured. Please configure your PostgreSQL connection string in environment variables.',
     };
   }
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    const timeoutPromise = new Promise<{ connected: false; error: string }>((_, reject) =>
+      setTimeout(() => reject(new Error('PostgreSQL connection attempt timed out (5s). Check your database host/port.')), 5000)
+    );
+    await Promise.race([prisma.$queryRaw`SELECT 1`, timeoutPromise]);
     return { connected: true };
   } catch (err: any) {
     return {

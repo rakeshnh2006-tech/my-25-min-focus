@@ -113,29 +113,37 @@ export const TimerPage: React.FC = () => {
   const strokeDashoffset = circumference - progressRatio * circumference;
 
   // Theme colors per mode
-  const modeColors = {
+  const modeColorsMap = {
     FOCUS: {
       text: 'text-focus-500',
-      stroke: '#f97316',
-      badgeBg: 'bg-focus-500/10 text-focus-400 border-focus-500/30',
-      glow: 'drop-shadow(0 0 20px rgba(249, 115, 22, 0.4))',
-      primaryBtn: 'bg-focus-500 hover:bg-focus-600 shadow-glow',
+      stroke: '#4F7CFF',
+      badgeBg: 'bg-blue-500/10 text-blue-400 border-blue-500/30',
+      glow: 'drop-shadow(0 0 20px rgba(79, 124, 255, 0.3))',
+      primaryBtn: 'bg-focus-500 hover:bg-focus-600 shadow-md',
     },
     SHORT_BREAK: {
-      text: 'text-break-short',
-      stroke: '#10b981',
-      badgeBg: 'bg-break-short/10 text-break-short border-break-short/30',
-      glow: 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.4))',
-      primaryBtn: 'bg-break-short hover:bg-emerald-600 shadow-glow-break',
+      text: 'text-emerald-400',
+      stroke: '#10B981',
+      badgeBg: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+      glow: 'drop-shadow(0 0 20px rgba(16, 185, 129, 0.3))',
+      primaryBtn: 'bg-emerald-500 hover:bg-emerald-600 shadow-md',
     },
     LONG_BREAK: {
-      text: 'text-break-long',
-      stroke: '#8b5cf6',
-      badgeBg: 'bg-break-long/10 text-break-long border-break-long/30',
-      glow: 'drop-shadow(0 0 20px rgba(139, 92, 246, 0.4))',
-      primaryBtn: 'bg-break-long hover:bg-indigo-600 shadow-glow-long',
+      text: 'text-violet-400',
+      stroke: '#7C3AED',
+      badgeBg: 'bg-violet-500/10 text-violet-400 border-violet-500/30',
+      glow: 'drop-shadow(0 0 20px rgba(124, 58, 237, 0.3))',
+      primaryBtn: 'bg-violet-600 hover:bg-violet-700 shadow-md',
     },
-  }[mode];
+    STOPWATCH: {
+      text: 'text-amber-400',
+      stroke: '#F59E0B',
+      badgeBg: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+      glow: 'drop-shadow(0 0 20px rgba(245, 158, 11, 0.3))',
+      primaryBtn: 'bg-amber-500 hover:bg-amber-600 shadow-md',
+    },
+  };
+  const modeColors = modeColorsMap[mode] || modeColorsMap.FOCUS;
 
   const longBreakInterval = preference?.longBreakInterval || 4;
 

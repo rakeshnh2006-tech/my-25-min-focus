@@ -7,14 +7,15 @@ import {
   Play,
   Trash2,
   Edit2,
-  Tag,
-  AlertCircle,
   Filter,
+  AlertCircle,
+  CheckSquare,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTimer } from '../context/TimerContext';
 import { Modal } from '../components/Modal';
 import { apiRequest } from '../lib/api';
+import { LocalStorageRepository } from '../lib/storage';
 import { StudyTask, TaskPriority } from '../types';
 
 interface TasksPageProps {
@@ -22,7 +23,7 @@ interface TasksPageProps {
 }
 
 export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
-  const { subjects } = useAuth();
+  const { user, subjects } = useAuth();
   const { setSelectedSubjectId, setSelectedTaskId } = useTimer();
 
   const [tasks, setTasks] = useState<StudyTask[]>([]);
@@ -45,6 +46,29 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async () => {
+    // If guest user, immediately load from LocalStorageRepository
+    if (user?.isGuest) {
+      let localTasks = LocalStorageRepository.getTasks();
+      if (selectedSubjectFilter !== 'ALL') {
+        localTasks = localTasks.filter((t) => t.subjectId === selectedSubjectFilter);
+      }
+      if (filter === 'completed') {
+        localTasks = localTasks.filter((t) => t.isCompleted);
+      } else if (filter === 'today') {
+        const todayStr = new Date().toISOString().split('T')[0];
+        localTasks = localTasks.filter(
+          (t) => !t.isCompleted && t.dueDate && t.dueDate.startsWith(todayStr)
+        );
+      } else if (filter === 'upcoming') {
+        localTasks = localTasks.filter((t) => !t.isCompleted && t.dueDate);
+      } else {
+        localTasks = localTasks.filter((t) => !t.isCompleted);
+      }
+      setTasks(localTasks);
+      return;
+    }
+
+    // Otherwise, try API with fallback to LocalStorage
     try {
       let query = `/api/tasks?filter=${filter}`;
       if (selectedSubjectFilter !== 'ALL') {
@@ -52,10 +76,20 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       }
       const data = await apiRequest<{ tasks: StudyTask[] }>(query);
       setTasks(data.tasks);
-    } catch (err) {
-      console.error('Failed to fetch tasks:', err);
+    } catch {
+      // LocalStorage fallback if server/db is unreachable
+      let localTasks = LocalStorageRepository.getTasks();
+      if (selectedSubjectFilter !== 'ALL') {
+        localTasks = localTasks.filter((t) => t.subjectId === selectedSubjectFilter);
+      }
+      if (filter === 'completed') {
+        localTasks = localTasks.filter((t) => t.isCompleted);
+      } else {
+        localTasks = localTasks.filter((t) => !t.isCompleted);
+      }
+      setTasks(localTasks);
     }
-  }, [filter, selectedSubjectFilter]);
+  }, [filter, selectedSubjectFilter, user?.isGuest]);
 
   useEffect(() => {
     fetchTasks();
@@ -92,26 +126,58 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       return;
     }
 
-    try {
-      const payload: any = {
-        title: title.trim(),
-        description: description.trim() || null,
-        subjectId: subjectId || null,
-        dueDate: dueDate ? new Date(dueDate).toISOString() : null,
-        priority,
-        estimatedSessions,
-      };
+    const payload: Partial<StudyTask> = {
+      title: title.trim(),
+      description: description.trim() || undefined,
+      subjectId: subjectId || undefined,
+      dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+      priority,
+      estimatedSessions,
+    };
 
+    try {
       if (editingTask) {
-        await apiRequest(`/api/tasks/${editingTask.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload),
-        });
+        const updated: StudyTask = {
+          ...editingTask,
+          ...payload,
+        };
+        LocalStorageRepository.saveTask(updated);
+
+        if (!user?.isGuest) {
+          try {
+            await apiRequest(`/api/tasks/${editingTask.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify(payload),
+            });
+          } catch {
+            // Local update succeeded, ignore cloud sync error
+          }
+        }
       } else {
-        await apiRequest('/api/tasks', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        const newTask: StudyTask = {
+          id: 'task_' + Date.now(),
+          title: title.trim(),
+          description: description.trim() || undefined,
+          subjectId: subjectId || undefined,
+          priority,
+          estimatedSessions,
+          completedSessions: 0,
+          isCompleted: false,
+          dueDate: dueDate ? new Date(dueDate).toISOString() : undefined,
+          createdAt: new Date().toISOString(),
+        };
+        LocalStorageRepository.saveTask(newTask);
+
+        if (!user?.isGuest) {
+          try {
+            await apiRequest('/api/tasks', {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+          } catch {
+            // Local update succeeded
+          }
+        }
       }
 
       setIsModalOpen(false);
@@ -124,7 +190,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
   const handleDeleteTask = async () => {
     if (!deletingTaskId) return;
     try {
-      await apiRequest(`/api/tasks/${deletingTaskId}`, { method: 'DELETE' });
+      LocalStorageRepository.deleteTask(deletingTaskId);
+      if (!user?.isGuest) {
+        try {
+          await apiRequest(`/api/tasks/${deletingTaskId}`, { method: 'DELETE' });
+        } catch {
+          // Local delete succeeded
+        }
+      }
       setDeletingTaskId(null);
       fetchTasks();
     } catch (err) {
@@ -134,10 +207,17 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
 
   const toggleTaskCompletion = async (task: StudyTask) => {
     try {
-      await apiRequest(`/api/tasks/${task.id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ isCompleted: !task.isCompleted }),
-      });
+      LocalStorageRepository.toggleTask(task.id);
+      if (!user?.isGuest) {
+        try {
+          await apiRequest(`/api/tasks/${task.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify({ isCompleted: !task.isCompleted }),
+          });
+        } catch {
+          // Local update succeeded
+        }
+      }
       fetchTasks();
     } catch (err) {
       console.error('Failed to toggle completion:', err);
@@ -149,11 +229,11 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
     if (task.subjectId) {
       setSelectedSubjectId(task.subjectId);
     }
-    onNavigate('timer');
+    onNavigate('dashboard');
   };
 
   const priorityColors = {
-    HIGH: 'bg-red-500/15 text-red-400 border-red-500/30',
+    HIGH: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
     MEDIUM: 'bg-amber-500/15 text-amber-400 border-amber-500/30',
     LOW: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
   };
@@ -163,15 +243,15 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       {/* Header and Add Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Study Tasks</h1>
-          <p className="text-xs text-slate-400">
-            Plan coursework, break assignments into Pomodoro intervals, and track milestones.
+          <h1 className="text-2xl font-extrabold text-[#F8FAFC] tracking-tight">Study Tasks</h1>
+          <p className="text-xs text-[#94A3B8]">
+            Plan coursework, break assignments into focus intervals, and track milestones.
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-glow transition-all"
+          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>New Task</span>
@@ -180,14 +260,14 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
 
       {/* Filter Tabs & Subject Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <div className="flex items-center space-x-1.5 p-1 rounded-xl glass-card border border-slate-800 w-fit overflow-x-auto">
+        <div className="flex items-center space-x-1.5 p-1 rounded-xl bg-[#111827] border border-slate-800 w-fit overflow-x-auto">
           {(['all', 'today', 'upcoming', 'completed'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
               className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold capitalize transition-all ${
                 filter === tab
-                  ? 'bg-slate-800 text-white shadow-sm border border-slate-700'
+                  ? 'bg-focus-500 text-white shadow-sm'
                   : 'text-slate-400 hover:text-slate-200'
               }`}
             >
@@ -202,7 +282,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
           <select
             value={selectedSubjectFilter}
             onChange={(e) => setSelectedSubjectFilter(e.target.value)}
-            className="bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-focus-500"
+            className="bg-[#111827] border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-300 focus:outline-none focus:border-focus-500"
           >
             <option value="ALL">All Subjects</option>
             {subjects.map((sub) => (
@@ -220,7 +300,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
           tasks.map((task) => (
             <div
               key={task.id}
-              className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-slate-700/80 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+              className="bg-[#111827] rounded-2xl p-4 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
             >
               <div className="flex items-start space-x-3.5 overflow-hidden">
                 <button
@@ -237,17 +317,25 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
 
                 <div className="space-y-1 min-w-0">
                   <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                    <span className={`text-sm font-bold ${task.isCompleted ? 'line-through text-slate-500' : 'text-white'}`}>
+                    <span
+                      className={`text-sm font-bold ${
+                        task.isCompleted ? 'line-through text-slate-500' : 'text-white'
+                      }`}
+                    >
                       {task.title}
                     </span>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${priorityColors[task.priority]}`}>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded border uppercase ${
+                        priorityColors[task.priority]
+                      }`}
+                    >
                       {task.priority}
                     </span>
                     {task.subject && (
                       <span
                         className="text-[10px] font-semibold px-2 py-0.5 rounded"
                         style={{
-                          backgroundColor: `${task.subject.color}15`,
+                          backgroundColor: `${task.subject.color}20`,
                           color: task.subject.color,
                         }}
                       >
@@ -270,7 +358,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
                     <span className="flex items-center space-x-1">
                       <Clock className="w-3 h-3 text-focus-400" />
                       <span>
-                        {task.completedSessions}/{task.estimatedSessions} Pomodoros
+                        {task.completedSessions}/{task.estimatedSessions} Focus Sessions
                       </span>
                     </span>
                   </div>
@@ -297,7 +385,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
                 </button>
                 <button
                   onClick={() => setDeletingTaskId(task.id)}
-                  className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
                   title="Delete task"
                 >
                   <Trash2 className="w-4 h-4" />
@@ -306,9 +394,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
             </div>
           ))
         ) : (
-          <div className="glass-card rounded-2xl p-12 text-center space-y-3 border border-slate-800">
+          <div className="bg-[#111827] rounded-2xl p-12 text-center space-y-3 border border-slate-800">
             <div className="w-12 h-12 rounded-2xl bg-slate-800/80 mx-auto flex items-center justify-center text-slate-500">
-              <CheckCircle2 className="w-6 h-6" />
+              <CheckSquare className="w-6 h-6 text-slate-400" />
             </div>
             <h3 className="text-sm font-bold text-white">No tasks found</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
@@ -336,7 +424,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       >
         <form onSubmit={handleSaveTask} className="space-y-4">
           {formError && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center space-x-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{formError}</span>
             </div>
@@ -351,8 +439,8 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
               required
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Solve Practice Problem Set 3"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500"
+              placeholder="e.g. Chapter 4 Practice Problems"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500"
             />
           </div>
 
@@ -364,8 +452,8 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Notes, textbook pages, or specific goals..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500 resize-none"
+              placeholder="Key notes, textbook pages, or specific objectives..."
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500 resize-none"
             />
           </div>
 
@@ -377,7 +465,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
               <select
                 value={subjectId}
                 onChange={(e) => setSubjectId(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
               >
                 <option value="">No Subject</option>
                 {subjects.map((sub) => (
@@ -396,7 +484,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
               />
             </div>
           </div>
@@ -409,7 +497,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
               <select
                 value={priority}
                 onChange={(e) => setPriority(e.target.value as TaskPriority)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
               >
                 <option value="LOW">Low</option>
                 <option value="MEDIUM">Medium</option>
@@ -419,7 +507,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
 
             <div>
               <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Estimated Pomodoros
+                Estimated Sessions
               </label>
               <input
                 type="number"
@@ -427,7 +515,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
                 max={20}
                 value={estimatedSessions}
                 onChange={(e) => setEstimatedSessions(parseInt(e.target.value, 10) || 1)}
-                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
               />
             </div>
           </div>
@@ -442,7 +530,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-glow transition-all"
+              className="px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
             >
               {editingTask ? 'Save Changes' : 'Create Task'}
             </button>
@@ -469,7 +557,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
             </button>
             <button
               onClick={handleDeleteTask}
-              className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs"
+              className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
             >
               Delete
             </button>

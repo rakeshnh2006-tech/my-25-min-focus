@@ -1,8 +1,8 @@
 {
-  "name": "focusflow-monorepo",
+  "name": "cognify-monorepo",
   "version": "1.0.0",
   "private": true,
-  "description": "FocusFlow - Production-Ready Pomodoro Study Productivity Platform for College Students",
+  "description": "Cognify - Premium Focus & Study App for Deep Work and Academic Excellence",
   "workspaces": [
     "server",
     "client"

@@ -2,9 +2,6 @@ import React, { useState } from 'react';
 import {
   BookOpen,
   Plus,
-  Clock,
-  CheckCircle2,
-  ListTodo,
   Trash2,
   Edit2,
   AlertCircle,
@@ -13,30 +10,29 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { Modal } from '../components/Modal';
 import { apiRequest } from '../lib/api';
+import { LocalStorageRepository } from '../lib/storage';
 import { Subject } from '../types';
 
 const COLOR_PALETTE = [
-  '#f97316', // Focus Orange
-  '#3b82f6', // Ocean Blue
-  '#10b981', // Emerald Green
-  '#8b5cf6', // Violet Purple
-  '#ec4899', // Pink
-  '#f59e0b', // Amber
-  '#06b6d4', // Cyan
-  '#6366f1', // Indigo
-  '#14b8a6', // Teal
-  '#ef4444', // Red
+  '#4F7CFF', // Electric Blue (Primary)
+  '#7C3AED', // Violet (Secondary)
+  '#10B981', // Emerald
+  '#F59E0B', // Amber
+  '#06B6D4', // Cyan
+  '#EC4899', // Pink
+  '#6366F1', // Indigo
+  '#F43F5E', // Rose
 ];
 
 const STARTER_SUGGESTIONS = [
-  { name: 'Computer Science', color: '#3b82f6', description: 'Data structures, algorithms, and software engineering' },
-  { name: 'Calculus & Linear Algebra', color: '#10b981', description: 'Problem sets, proofs, and practice exams' },
-  { name: 'Biology & Biochemistry', color: '#8b5cf6', description: 'Lab reports, flashcards, and textbook readings' },
-  { name: 'Microeconomics', color: '#f59e0b', description: 'Economic models, market theory, and quantitative problem sets' },
+  { name: 'Computer Science', color: '#4F7CFF', description: 'Algorithms, systems, and software engineering' },
+  { name: 'Mathematics & Stats', color: '#10B981', description: 'Calculus, linear algebra, and statistical modeling' },
+  { name: 'Machine Learning', color: '#7C3AED', description: 'Neural networks, optimization, and data pipelines' },
+  { name: 'Economics & Finance', color: '#F59E0B', description: 'Markets, economic principles, and quantitative analysis' },
 ];
 
 export const SubjectsPage: React.FC = () => {
-  const { subjects, refreshSubjects } = useAuth();
+  const { user, subjects, refreshSubjects, addSubject, deleteSubject } = useAuth();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSubject, setEditingSubject] = useState<Subject | null>(null);
@@ -44,7 +40,7 @@ export const SubjectsPage: React.FC = () => {
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
-  const [color, setColor] = useState('#f97316');
+  const [color, setColor] = useState('#4F7CFF');
   const [weeklyGoalHours, setWeeklyGoalHours] = useState(5);
   const [formError, setFormError] = useState<string | null>(null);
 
@@ -55,7 +51,7 @@ export const SubjectsPage: React.FC = () => {
     setEditingSubject(null);
     setName('');
     setDescription('');
-    setColor('#f97316');
+    setColor('#4F7CFF');
     setWeeklyGoalHours(5);
     setFormError(null);
     setIsModalOpen(true);
@@ -65,7 +61,7 @@ export const SubjectsPage: React.FC = () => {
     setEditingSubject(sub);
     setName(sub.name);
     setDescription(sub.description || '');
-    setColor(sub.color || '#f97316');
+    setColor(sub.color || '#4F7CFF');
     setWeeklyGoalHours(Math.round((sub.weeklyGoalMinutes || 0) / 60));
     setFormError(null);
     setIsModalOpen(true);
@@ -78,24 +74,52 @@ export const SubjectsPage: React.FC = () => {
       return;
     }
 
-    try {
-      const payload = {
-        name: name.trim(),
-        description: description.trim() || null,
-        color,
-        weeklyGoalMinutes: Math.max(0, weeklyGoalHours * 60),
-      };
+    const payload = {
+      name: name.trim(),
+      description: description.trim() || undefined,
+      color,
+      weeklyGoalMinutes: Math.max(0, weeklyGoalHours * 60),
+    };
 
+    try {
       if (editingSubject) {
-        await apiRequest(`/api/subjects/${editingSubject.id}`, {
-          method: 'PATCH',
-          body: JSON.stringify(payload),
-        });
+        const updated: Subject = {
+          ...editingSubject,
+          ...payload,
+        };
+        LocalStorageRepository.saveSubject(updated);
+
+        if (!user?.isGuest) {
+          try {
+            await apiRequest(`/api/subjects/${editingSubject.id}`, {
+              method: 'PATCH',
+              body: JSON.stringify(payload),
+            });
+          } catch {
+            // Local update succeeded
+          }
+        }
       } else {
-        await apiRequest('/api/subjects', {
-          method: 'POST',
-          body: JSON.stringify(payload),
-        });
+        const newSubject: Subject = {
+          id: 'sub_' + Date.now(),
+          name: name.trim(),
+          description: description.trim() || undefined,
+          color,
+          weeklyGoalMinutes: Math.max(0, weeklyGoalHours * 60),
+          createdAt: new Date().toISOString(),
+        };
+        addSubject(newSubject);
+
+        if (!user?.isGuest) {
+          try {
+            await apiRequest('/api/subjects', {
+              method: 'POST',
+              body: JSON.stringify(payload),
+            });
+          } catch {
+            // Local update succeeded
+          }
+        }
       }
 
       setIsModalOpen(false);
@@ -108,7 +132,14 @@ export const SubjectsPage: React.FC = () => {
   const handleDeleteSubject = async () => {
     if (!deletingSubjectId) return;
     try {
-      await apiRequest(`/api/subjects/${deletingSubjectId}`, { method: 'DELETE' });
+      deleteSubject(deletingSubjectId);
+      if (!user?.isGuest) {
+        try {
+          await apiRequest(`/api/subjects/${deletingSubjectId}`, { method: 'DELETE' });
+        } catch {
+          // Local delete succeeded
+        }
+      }
       setDeletingSubjectId(null);
       refreshSubjects();
     } catch (err) {
@@ -118,15 +149,31 @@ export const SubjectsPage: React.FC = () => {
 
   const addStarterSubject = async (starter: { name: string; color: string; description: string }) => {
     try {
-      await apiRequest('/api/subjects', {
-        method: 'POST',
-        body: JSON.stringify({
-          name: starter.name,
-          color: starter.color,
-          description: starter.description,
-          weeklyGoalMinutes: 300,
-        }),
-      });
+      const newSubject: Subject = {
+        id: 'sub_' + Date.now(),
+        name: starter.name,
+        color: starter.color,
+        description: starter.description,
+        weeklyGoalMinutes: 300,
+        createdAt: new Date().toISOString(),
+      };
+      addSubject(newSubject);
+
+      if (!user?.isGuest) {
+        try {
+          await apiRequest('/api/subjects', {
+            method: 'POST',
+            body: JSON.stringify({
+              name: starter.name,
+              color: starter.color,
+              description: starter.description,
+              weeklyGoalMinutes: 300,
+            }),
+          });
+        } catch {
+          // Local add succeeded
+        }
+      }
       refreshSubjects();
     } catch (err) {
       console.error('Failed to add starter subject:', err);
@@ -138,25 +185,25 @@ export const SubjectsPage: React.FC = () => {
       {/* Header and Add Action */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-extrabold text-white tracking-tight">Academic Subjects</h1>
-          <p className="text-xs text-slate-400">
-            Organize coursework by topic, assign custom themes, and track progress against weekly targets.
+          <h1 className="text-2xl font-extrabold text-[#F8FAFC] tracking-tight">Academic Subjects</h1>
+          <p className="text-xs text-[#94A3B8]">
+            Organize coursework by topic, assign color themes, and track progress against weekly targets.
           </p>
         </div>
 
         <button
           onClick={openCreateModal}
-          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-glow transition-all"
+          className="flex items-center space-x-2 px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
         >
           <Plus className="w-4 h-4" />
           <span>New Subject</span>
         </button>
       </div>
 
-      {/* Quick Starter Suggestions (if user has fewer than 2 subjects) */}
+      {/* Quick Starter Suggestions */}
       {subjects.length < 3 && (
-        <div className="p-5 rounded-2xl glass-card border border-slate-800 space-y-3">
-          <div className="flex items-center space-x-2 text-xs font-bold text-focus-400 uppercase tracking-wider">
+        <div className="p-5 rounded-2xl bg-[#111827] border border-slate-800 space-y-3">
+          <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
             <Sparkles className="w-4 h-4" />
             <span>Quick Suggestions &mdash; 1-Click Setup</span>
           </div>
@@ -167,14 +214,14 @@ export const SubjectsPage: React.FC = () => {
               <button
                 key={starter.name}
                 onClick={() => addStarterSubject(starter)}
-                className="p-3 rounded-xl bg-slate-900/60 border border-slate-800 hover:border-slate-700 text-left transition-all group"
+                className="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-left transition-all group"
               >
                 <div className="flex items-center space-x-2">
                   <span
                     className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                     style={{ backgroundColor: starter.color }}
                   />
-                  <span className="text-xs font-bold text-white group-hover:text-focus-400 transition-colors truncate">
+                  <span className="text-xs font-bold text-white group-hover:text-blue-400 transition-colors truncate">
                     + {starter.name}
                   </span>
                 </div>
@@ -194,7 +241,7 @@ export const SubjectsPage: React.FC = () => {
             return (
               <div
                 key={sub.id}
-                className="glass-card rounded-2xl p-6 border border-slate-800 hover:border-slate-700 transition-all flex flex-col justify-between relative overflow-hidden group"
+                className="bg-[#111827] rounded-2xl p-6 border border-slate-800/80 hover:border-slate-700 transition-all flex flex-col justify-between relative overflow-hidden group"
               >
                 {/* Accent top color strip */}
                 <div
@@ -224,7 +271,7 @@ export const SubjectsPage: React.FC = () => {
                       </button>
                       <button
                         onClick={() => setDeletingSubjectId(sub.id)}
-                        className="p-1.5 text-slate-400 hover:text-red-400 rounded-lg hover:bg-red-500/10 transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-rose-500/10 transition-colors"
                         title="Delete subject"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -242,7 +289,7 @@ export const SubjectsPage: React.FC = () => {
                 {/* Subject Statistics */}
                 <div className="mt-6 pt-4 border-t border-slate-800/80 space-y-3">
                   <div className="grid grid-cols-3 gap-2 text-center">
-                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
                       <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                         Study Time
                       </span>
@@ -251,16 +298,16 @@ export const SubjectsPage: React.FC = () => {
                       </span>
                     </div>
 
-                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
                       <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                         Sessions
                       </span>
-                      <span className="text-xs font-bold text-focus-400 mt-0.5 block">
+                      <span className="text-xs font-bold text-blue-400 mt-0.5 block">
                         {sub.completedSessionsCount || 0}
                       </span>
                     </div>
 
-                    <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800">
+                    <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
                       <span className="block text-[10px] text-slate-400 uppercase font-semibold">
                         Tasks
                       </span>
@@ -283,17 +330,17 @@ export const SubjectsPage: React.FC = () => {
             );
           })
         ) : (
-          <div className="col-span-full glass-card rounded-2xl p-12 text-center space-y-3 border border-slate-800">
+          <div className="col-span-full bg-[#111827] rounded-2xl p-12 text-center space-y-3 border border-slate-800">
             <div className="w-12 h-12 rounded-2xl bg-slate-800/80 mx-auto flex items-center justify-center text-slate-500">
-              <BookOpen className="w-6 h-6" />
+              <BookOpen className="w-6 h-6 text-slate-400" />
             </div>
             <h3 className="text-sm font-bold text-white">No subjects added yet</h3>
             <p className="text-xs text-slate-400 max-w-sm mx-auto">
-              Add your current courses or subjects to categorize your focused Pomodoro sessions.
+              Add your current courses or subjects to categorize your focused study sessions.
             </p>
             <button
               onClick={openCreateModal}
-              className="mt-2 text-xs font-bold text-focus-400 hover:underline"
+              className="mt-2 text-xs font-bold text-blue-400 hover:underline"
             >
               + Create your first subject
             </button>
@@ -309,7 +356,7 @@ export const SubjectsPage: React.FC = () => {
       >
         <form onSubmit={handleSaveSubject} className="space-y-4">
           {formError && (
-            <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center space-x-2">
+            <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{formError}</span>
             </div>
@@ -325,7 +372,7 @@ export const SubjectsPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Distributed Systems"
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500"
             />
           </div>
 
@@ -338,7 +385,7 @@ export const SubjectsPage: React.FC = () => {
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Course code, professor, or notes..."
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500 resize-none"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500 resize-none"
             />
           </div>
 
@@ -372,7 +419,7 @@ export const SubjectsPage: React.FC = () => {
               max={60}
               value={weeklyGoalHours}
               onChange={(e) => setWeeklyGoalHours(parseInt(e.target.value, 10) || 0)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
             />
           </div>
 
@@ -386,7 +433,7 @@ export const SubjectsPage: React.FC = () => {
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-glow transition-all"
+              className="px-5 py-2.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
             >
               {editingSubject ? 'Save Changes' : 'Create Subject'}
             </button>
@@ -413,7 +460,7 @@ export const SubjectsPage: React.FC = () => {
             </button>
             <button
               onClick={handleDeleteSubject}
-              className="px-4 py-2 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold text-xs"
+              className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-600 text-white font-bold text-xs transition-colors"
             >
               Confirm Delete
             </button>

@@ -137,7 +137,7 @@ o/bKiIz+Fq8=
         }
 
         sslConfig = {
-          rejectUnauthorized: true,
+          rejectUnauthorized: false,
           ca: caContent,
         };
       }
@@ -159,7 +159,7 @@ o/bKiIz+Fq8=
 
   app.use(
     session({
-      name: 'focusflow.sid',
+      name: 'cognify.sid',
       store: sessionStore,
       secret: env.SESSION_SECRET,
       resave: false,

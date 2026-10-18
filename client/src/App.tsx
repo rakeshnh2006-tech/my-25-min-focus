@@ -7,6 +7,7 @@ import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { OnboardingModal } from './components/OnboardingModal';
 
+import { Landing } from './pages/Landing';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { TimerPage } from './pages/Timer';
@@ -15,20 +16,39 @@ import { SubjectsPage } from './pages/Subjects';
 import { AnalyticsPage } from './pages/Analytics';
 import { HistoryPage } from './pages/History';
 import { SettingsPage } from './pages/Settings';
-import { Flame } from 'lucide-react';
 
 const AppContent: React.FC = () => {
-  const { user, preference, isLoading } = useAuth();
-  const [currentPage, setCurrentPage] = useState<string>('dashboard');
+  const { user, preference, isLoading, loginAsGuest } = useAuth();
+  const [currentPage, setCurrentPage] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const hash = window.location.hash.replace('#', '');
+      if (
+        ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
+          hash
+        )
+      ) {
+        return hash;
+      }
+    }
+    return 'dashboard';
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<boolean>(false);
   const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
 
-  // Sync URL hash or initial page
+  // Sync URL hash
   useEffect(() => {
-    const hash = window.location.hash.replace('#', '');
-    if (['dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings'].includes(hash)) {
-      setCurrentPage(hash);
-    }
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace('#', '');
+      if (
+        ['landing', 'dashboard', 'timer', 'tasks', 'subjects', 'analytics', 'history', 'settings', 'login'].includes(
+          hash
+        )
+      ) {
+        setCurrentPage(hash);
+      }
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const handleNavigate = (page: string) => {
@@ -36,7 +56,7 @@ const AppContent: React.FC = () => {
     window.location.hash = page;
   };
 
-  // Check onboarding status
+  // Check onboarding status for first-time logged in users
   useEffect(() => {
     if (user && preference && preference.hasCompletedOnboarding === false) {
       setShowOnboarding(true);
@@ -46,23 +66,49 @@ const AppContent: React.FC = () => {
   // Loading screen
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center space-y-4 text-white">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-focus-600 to-focus-400 flex items-center justify-center shadow-glow animate-pulse">
-          <Flame className="w-6 h-6 text-white" />
+      <div className="min-h-screen bg-[#080D1A] flex flex-col items-center justify-center space-y-4 text-white">
+        <div className="relative w-16 h-16 flex items-center justify-center">
+          <div className="absolute inset-0 bg-blue-500/20 rounded-2xl blur-lg animate-pulse" />
+          <img
+            src="/logo-256.png"
+            alt="Cognify"
+            className="w-14 h-14 rounded-2xl object-cover shadow-2xl border border-blue-500/30 animate-pulse"
+          />
         </div>
         <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-          Loading FocusFlow...
+          Loading Cognify...
         </p>
       </div>
     );
   }
 
-  // Unauthenticated user -> Login Screen
+  // Unauthenticated user -> Landing or Login
   if (!user) {
-    return <Login />;
+    if (currentPage === 'login') {
+      return <Login onBackToApp={() => handleNavigate('landing')} />;
+    }
+    return (
+      <Landing
+        onStartFocusing={() => {
+          loginAsGuest();
+          handleNavigate('dashboard');
+        }}
+        onOpenLogin={() => handleNavigate('login')}
+      />
+    );
   }
 
-  // Authenticated user -> App Shell
+  // If authenticated user explicitly browses to landing page
+  if (currentPage === 'landing') {
+    return (
+      <Landing
+        onStartFocusing={() => handleNavigate('dashboard')}
+        onOpenLogin={() => handleNavigate('dashboard')}
+      />
+    );
+  }
+
+  // Authenticated user -> Main App Shell
   return (
     <div className="min-h-screen bg-background flex flex-col lg:flex-row">
       {/* Sidebar */}
@@ -96,7 +142,7 @@ const AppContent: React.FC = () => {
       <OnboardingModal
         isOpen={showOnboarding}
         onClose={() => setShowOnboarding(false)}
-        onStartFirstSession={() => handleNavigate('timer')}
+        onStartFirstSession={() => handleNavigate('dashboard')}
       />
     </div>
   );

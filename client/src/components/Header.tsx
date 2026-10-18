@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, BellOff, Volume2, VolumeX, Play, LogOut } from 'lucide-react';
+import { Menu, Bell, BellOff, Volume2, VolumeX, CloudRain, LogIn, LogOut } from 'lucide-react';
 import { useTimer } from '../context/TimerContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -11,16 +11,38 @@ interface HeaderProps {
 
 export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate }) => {
   const {
-    status,
     soundEnabled,
     setSoundEnabled,
     notificationsEnabled,
     setNotificationsEnabled,
+    isRainPlaying,
+    toggleRain,
   } = useTimer();
-  const { logout } = useAuth();
+  const { user, isGuest, logout } = useAuth();
+
+  const getPageTitle = (id: string) => {
+    switch (id) {
+      case 'dashboard':
+        return 'Focus Dashboard';
+      case 'tasks':
+        return 'Study Tasks';
+      case 'subjects':
+        return 'Academic Subjects';
+      case 'analytics':
+        return 'Focus Analytics';
+      case 'history':
+        return 'Session History';
+      case 'settings':
+        return 'Preferences & Settings';
+      case 'login':
+        return 'Authentication';
+      default:
+        return id;
+    }
+  };
 
   return (
-    <header className="sticky top-0 z-20 h-16 bg-[#0b0f19]/80 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 flex items-center justify-between">
+    <header className="sticky top-0 z-20 h-16 bg-[#080D1A]/90 backdrop-blur-md border-b border-slate-800/80 px-4 sm:px-8 flex items-center justify-between">
       <div className="flex items-center space-x-3">
         <button
           onClick={onOpenMobile}
@@ -29,33 +51,37 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate 
         >
           <Menu className="w-5 h-5" />
         </button>
-        <h1 className="text-lg sm:text-xl font-bold text-white tracking-tight capitalize">
-          {title}
+        <h1 className="text-base sm:text-lg font-bold text-white tracking-tight">
+          {getPageTitle(title)}
         </h1>
       </div>
 
       <div className="flex items-center space-x-2 sm:space-x-3">
-        {/* Quick action: Jump to timer */}
-        {status === 'IDLE' && (
-          <button
-            onClick={() => onNavigate('timer')}
-            className="hidden sm:flex items-center space-x-2 px-3.5 py-1.5 rounded-xl bg-focus-500 hover:bg-focus-600 text-white text-xs font-semibold shadow-glow transition-all"
-          >
-            <Play className="w-3.5 h-3.5 fill-current" />
-            <span>Start Focusing</span>
-          </button>
-        )}
+        {/* Ambient Rain Sound Quick Toggle */}
+        <button
+          onClick={toggleRain}
+          title={isRainPlaying ? 'Ambient rain sound is active (click to stop)' : 'Play ambient rain sound'}
+          className={`p-2 rounded-xl border transition-colors flex items-center gap-1.5 ${
+            isRainPlaying
+              ? 'border-blue-500/40 bg-blue-500/15 text-blue-400'
+              : 'border-slate-800 text-slate-500 hover:text-slate-300'
+          }`}
+          aria-label="Toggle ambient rain sound"
+        >
+          <CloudRain className="w-4 h-4" />
+          {isRainPlaying && <span className="text-[11px] font-semibold text-blue-400 hidden md:inline">Rain</span>}
+        </button>
 
-        {/* Audio notification toggle */}
+        {/* Chime audio notification toggle */}
         <button
           onClick={() => setSoundEnabled(!soundEnabled)}
-          title={soundEnabled ? 'Sound alerts enabled' : 'Sound alerts muted'}
+          title={soundEnabled ? 'Chime alerts enabled' : 'Chime alerts muted'}
           className={`p-2 rounded-xl border transition-colors ${
             soundEnabled
               ? 'border-slate-700 bg-slate-800/60 text-focus-400'
               : 'border-slate-800 text-slate-500 hover:text-slate-300'
           }`}
-          aria-label="Toggle sound alerts"
+          aria-label="Toggle chime alerts"
         >
           {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
         </button>
@@ -66,7 +92,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate 
           title={notificationsEnabled ? 'Desktop notifications enabled' : 'Enable desktop notifications'}
           className={`p-2 rounded-xl border transition-colors ${
             notificationsEnabled
-              ? 'border-slate-700 bg-slate-800/60 text-break-short'
+              ? 'border-slate-700 bg-slate-800/60 text-emerald-400'
               : 'border-slate-800 text-slate-500 hover:text-slate-300'
           }`}
           aria-label="Toggle desktop notifications"
@@ -76,16 +102,26 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate 
 
         <div className="h-5 w-px bg-slate-800 mx-0.5 hidden sm:block" />
 
-        {/* Sign Out Button */}
-        <button
-          onClick={logout}
-          title="Sign out of FocusFlow"
-          id="header-signout-button"
-          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-xs font-semibold transition-all duration-200"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Sign Out</span>
-        </button>
+        {/* Sign in / Guest Sync Button or Sign Out */}
+        {isGuest ? (
+          <button
+            onClick={() => onNavigate('login')}
+            title="Sign in with Google to enable cloud sync"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 text-xs font-semibold transition-all"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Connect Google</span>
+          </button>
+        ) : (
+          <button
+            onClick={logout}
+            title="Sign out of Cognify"
+            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-xs font-semibold transition-all"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Sign Out</span>
+          </button>
+        )}
       </div>
     </header>
   );

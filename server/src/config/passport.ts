@@ -46,7 +46,7 @@ export function configurePassport() {
           try {
             const googleId = profile.id;
             const email = profile.emails?.[0]?.value?.toLowerCase();
-            const name = profile.displayName || profile.name?.givenName || 'FocusFlow Student';
+            const name = profile.displayName || profile.name?.givenName || 'Cognify Student';
             const avatarUrl = profile.photos?.[0]?.value || null;
 
             if (!email) {

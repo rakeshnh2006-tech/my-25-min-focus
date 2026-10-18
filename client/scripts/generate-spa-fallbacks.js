@@ -10,6 +10,7 @@ const indexPath = path.join(distDir, 'index.html');
 
 if (fs.existsSync(indexPath)) {
   const routes = [
+    'landing',
     'login',
     'dashboard',
     'timer',

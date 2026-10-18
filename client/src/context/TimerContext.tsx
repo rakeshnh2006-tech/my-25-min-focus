@@ -240,7 +240,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       );
     }
 
-    if (activeSession && user && !user.isGuest) {
+    if (activeSession && user) {
       try {
         await apiRequest(`/api/sessions/${activeSession.id}/complete`, {
           method: 'POST',
@@ -330,7 +330,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setStatus('RUNNING');
 
     // Cloud session creation if authenticated
-    if (user && !user.isGuest && (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK')) {
+    if (user && (mode === 'FOCUS' || mode === 'SHORT_BREAK' || mode === 'LONG_BREAK')) {
       try {
         const data = await apiRequest<{ session: FocusSession }>('/api/sessions', {
           method: 'POST',
@@ -354,7 +354,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setStatus('PAUSED');
     pauseStartRef.current = Date.now();
 
-    if (activeSession && user && !user.isGuest) {
+    if (activeSession && user) {
       try {
         await apiRequest(`/api/sessions/${activeSession.id}`, {
           method: 'PATCH',
@@ -387,7 +387,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     pauseStartRef.current = null;
     setStatus('RUNNING');
 
-    if (activeSession && user && !user.isGuest) {
+    if (activeSession && user) {
       try {
         await apiRequest(`/api/sessions/${activeSession.id}`, {
           method: 'PATCH',
@@ -419,7 +419,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     setSecondsRemaining(defaultDuration);
     setTotalDuration(defaultDuration);
 
-    if (activeSession && user && !user.isGuest) {
+    if (activeSession && user) {
       try {
         await apiRequest(`/api/sessions/${activeSession.id}/abandon`, { method: 'POST' });
       } catch {

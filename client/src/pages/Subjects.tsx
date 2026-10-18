@@ -89,15 +89,13 @@ export const SubjectsPage: React.FC = () => {
         };
         LocalStorageRepository.saveSubject(updated);
 
-        if (!user?.isGuest) {
-          try {
-            await apiRequest(`/api/subjects/${editingSubject.id}`, {
-              method: 'PATCH',
-              body: JSON.stringify(payload),
-            });
-          } catch {
-            // Local update succeeded
-          }
+        try {
+          await apiRequest(`/api/subjects/${editingSubject.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+          });
+        } catch {
+          // Local update succeeded
         }
       } else {
         const newSubject: Subject = {
@@ -110,15 +108,13 @@ export const SubjectsPage: React.FC = () => {
         };
         addSubject(newSubject);
 
-        if (!user?.isGuest) {
-          try {
-            await apiRequest('/api/subjects', {
-              method: 'POST',
-              body: JSON.stringify(payload),
-            });
-          } catch {
-            // Local update succeeded
-          }
+        try {
+          await apiRequest('/api/subjects', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+        } catch {
+          // Local update succeeded
         }
       }
 
@@ -133,12 +129,10 @@ export const SubjectsPage: React.FC = () => {
     if (!deletingSubjectId) return;
     try {
       deleteSubject(deletingSubjectId);
-      if (!user?.isGuest) {
-        try {
-          await apiRequest(`/api/subjects/${deletingSubjectId}`, { method: 'DELETE' });
-        } catch {
-          // Local delete succeeded
-        }
+      try {
+        await apiRequest(`/api/subjects/${deletingSubjectId}`, { method: 'DELETE' });
+      } catch {
+        // Local delete succeeded
       }
       setDeletingSubjectId(null);
       refreshSubjects();
@@ -159,20 +153,18 @@ export const SubjectsPage: React.FC = () => {
       };
       addSubject(newSubject);
 
-      if (!user?.isGuest) {
-        try {
-          await apiRequest('/api/subjects', {
-            method: 'POST',
-            body: JSON.stringify({
-              name: starter.name,
-              color: starter.color,
-              description: starter.description,
-              weeklyGoalMinutes: 300,
-            }),
-          });
-        } catch {
-          // Local add succeeded
-        }
+      try {
+        await apiRequest('/api/subjects', {
+          method: 'POST',
+          body: JSON.stringify({
+            name: starter.name,
+            color: starter.color,
+            description: starter.description,
+            weeklyGoalMinutes: 300,
+          }),
+        });
+      } catch {
+        // Local add succeeded
       }
       refreshSubjects();
     } catch (err) {

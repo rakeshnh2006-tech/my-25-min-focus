@@ -18,7 +18,7 @@ import { HistoryPage } from './pages/History';
 import { SettingsPage } from './pages/Settings';
 
 const AppContent: React.FC = () => {
-  const { user, preference, isLoading, loginAsGuest } = useAuth();
+  const { user, preference, isLoading } = useAuth();
   const [currentPage, setCurrentPage] = useState<string>(() => {
     if (typeof window !== 'undefined') {
       const hash = window.location.hash.replace('#', '');
@@ -82,20 +82,19 @@ const AppContent: React.FC = () => {
     );
   }
 
-  // Unauthenticated user -> Landing or Login
+  // Unauthenticated user -> Enforce Google Login
   if (!user) {
-    if (currentPage === 'login') {
-      return <Login onBackToApp={() => handleNavigate('landing')} />;
+    if (currentPage === 'landing') {
+      return (
+        <Landing
+          onStartFocusing={() => {
+            window.location.href = '/api/auth/google';
+          }}
+          onOpenLogin={() => handleNavigate('login')}
+        />
+      );
     }
-    return (
-      <Landing
-        onStartFocusing={() => {
-          loginAsGuest();
-          handleNavigate('dashboard');
-        }}
-        onOpenLogin={() => handleNavigate('login')}
-      />
-    );
+    return <Login onBackToApp={() => handleNavigate('landing')} />;
   }
 
   // If authenticated user explicitly browses to landing page

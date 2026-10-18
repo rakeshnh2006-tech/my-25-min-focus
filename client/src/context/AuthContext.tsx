@@ -9,8 +9,6 @@ interface AuthContextType {
   subjects: Subject[];
   isLoading: boolean;
   status: AuthStatusResponse | null;
-  isGuest: boolean;
-  loginAsGuest: () => void;
   refreshAuth: () => Promise<void>;
   logout: () => Promise<void>;
   updatePreferences: (updates: Partial<UserPreference>) => Promise<UserPreference>;
@@ -27,58 +25,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState<AuthStatusResponse | null>(null);
-  const [isGuest, setIsGuest] = useState(false);
 
   const fetchStatus = useCallback(async () => {
     try {
       const data = await apiRequest<AuthStatusResponse>('/api/auth/status');
       setStatus(data);
     } catch (err) {
-      console.warn('Backend status check unreachable, operating in resilient offline mode:', err);
+      console.warn('Backend status check unreachable:', err);
       setStatus({
         status: 'offline',
         configured: false,
-        database: { connected: false, error: 'Operating in Local Offline Mode' },
+        database: { connected: false, error: 'Database unreachable' },
         googleOAuth: { configured: false, callbackUrl: '' },
       });
     }
   }, []);
 
   const refreshSubjects = useCallback(async () => {
-    // If logged in to cloud, fetch from API
-    if (user && !user.isGuest) {
-      try {
-        const data = await apiRequest<{ subjects: Subject[] }>('/api/subjects');
-        setSubjects(data.subjects);
-        LocalStorageRepository.saveSubjects(data.subjects);
-        return;
-      } catch (err) {
-        console.warn('Failed to fetch subjects from cloud API, using local storage:', err);
-      }
+    if (!user) {
+      setSubjects([]);
+      return;
     }
-    // Fallback to local storage
-    const localSubs = LocalStorageRepository.getSubjects();
-    setSubjects(localSubs);
+    try {
+      const data = await apiRequest<{ subjects: Subject[] }>('/api/subjects');
+      setSubjects(data.subjects);
+      LocalStorageRepository.saveSubjects(data.subjects);
+    } catch (err) {
+      console.warn('Failed to fetch subjects from cloud API, using local storage cache:', err);
+      const localSubs = LocalStorageRepository.getSubjects();
+      setSubjects(localSubs);
+    }
   }, [user]);
 
-  const loginAsGuest = useCallback(() => {
-    const guestUser: User = {
-      id: 'guest_user',
-      name: 'Guest Scholar',
-      email: 'guest@cognify.app',
-      avatarUrl: null,
-      isGuest: true,
-    };
-    setUser(guestUser);
-    setIsGuest(true);
-    const localPrefs = LocalStorageRepository.getPreferences();
-    setPreference(localPrefs);
-    const localSubs = LocalStorageRepository.getSubjects();
-    setSubjects(localSubs);
-    setIsLoading(false);
-  }, []);
-
   const refreshAuth = useCallback(async () => {
+    // Clear any legacy guest sessions
+    try {
+      localStorage.removeItem('cognify_guest_session');
+      localStorage.removeItem('focusflow_guest_session');
+    } catch {
+      // ignore
+    }
+
     try {
       const data = await apiRequest<{
         user: User;
@@ -87,7 +74,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }>('/api/auth/me');
 
       setUser(data.user);
-      setIsGuest(false);
       setPreference(data.preference);
       LocalStorageRepository.savePreferences(data.preference);
       if (data.subjects) {
@@ -95,17 +81,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         LocalStorageRepository.saveSubjects(data.subjects);
       }
     } catch {
-      // Unauthenticated with server -> Initialize default guest session with localStorage
-      const localPrefs = LocalStorageRepository.getPreferences();
-      setPreference(localPrefs);
-      const localSubs = LocalStorageRepository.getSubjects();
-      setSubjects(localSubs);
-      // We don't force login wall: allow user to be guest
-      loginAsGuest();
+      // Unauthenticated -> User is null, must log in with Google
+      setUser(null);
+      setPreference(null);
+      setSubjects([]);
     } finally {
       setIsLoading(false);
     }
-  }, [loginAsGuest]);
+  }, []);
 
   useEffect(() => {
     fetchStatus();
@@ -114,24 +97,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     try {
-      if (user && !user.isGuest) {
-        await apiRequest('/api/auth/logout', { method: 'POST' });
-      }
+      await apiRequest('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error('Logout error:', err);
     } finally {
-      loginAsGuest();
-      window.location.hash = 'landing';
+      setUser(null);
+      setPreference(null);
+      setSubjects([]);
+      window.location.hash = 'login';
     }
   };
 
   const updatePreferences = async (updates: Partial<UserPreference>): Promise<UserPreference> => {
-    // Save to local storage first
     const updated = LocalStorageRepository.savePreferences(updates);
     setPreference(updated);
 
-    // Sync to cloud API if authenticated
-    if (user && !user.isGuest) {
+    if (user) {
       try {
         const data = await apiRequest<{ preference: UserPreference }>('/api/settings', {
           method: 'PATCH',
@@ -147,7 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const addSubject = async (subject: Omit<Subject, 'id'>): Promise<Subject> => {
-    if (user && !user.isGuest) {
+    if (user) {
       try {
         const res = await apiRequest<{ subject: Subject }>('/api/subjects', {
           method: 'POST',
@@ -165,7 +146,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const deleteSubject = async (id: string): Promise<void> => {
-    if (user && !user.isGuest) {
+    if (user) {
       try {
         await apiRequest(`/api/subjects/${id}`, { method: 'DELETE' });
       } catch (err) {
@@ -184,8 +165,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         subjects,
         isLoading,
         status,
-        isGuest,
-        loginAsGuest,
         refreshAuth,
         logout,
         updatePreferences,

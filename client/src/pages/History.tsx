@@ -32,25 +32,6 @@ export const HistoryPage: React.FC = () => {
 
   const fetchHistory = useCallback(async () => {
     setIsLoading(true);
-
-    if (user?.isGuest) {
-      let local = LocalStorageRepository.getSessions();
-      if (statusFilter) local = local.filter((s) => s.status === statusFilter);
-      if (typeFilter) local = local.filter((s) => s.sessionType === typeFilter);
-      if (subjectFilter) local = local.filter((s) => s.subjectId === subjectFilter);
-
-      const totalCount = local.length;
-      const pages = Math.ceil(totalCount / limit) || 1;
-      const startIndex = (page - 1) * limit;
-      const pageSessions = local.slice(startIndex, startIndex + limit);
-
-      setSessions(pageSessions);
-      setTotal(totalCount);
-      setTotalPages(pages);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const params = new URLSearchParams({
         page: page.toString(),
@@ -69,7 +50,7 @@ export const HistoryPage: React.FC = () => {
       setTotal(data.pagination.total);
       setTotalPages(data.pagination.totalPages || 1);
     } catch {
-      // Offline fallback
+      // Local cache fallback if cloud API temporarily fails
       let local = LocalStorageRepository.getSessions();
       if (statusFilter) local = local.filter((s) => s.status === statusFilter);
       if (typeFilter) local = local.filter((s) => s.sessionType === typeFilter);
@@ -86,7 +67,7 @@ export const HistoryPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [page, limit, statusFilter, typeFilter, subjectFilter, user?.isGuest]);
+  }, [page, limit, statusFilter, typeFilter, subjectFilter]);
 
   useEffect(() => {
     fetchHistory();

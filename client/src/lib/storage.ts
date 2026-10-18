@@ -6,12 +6,11 @@ const STORAGE_KEYS = {
   SESSIONS: 'cognify_sessions',
   PREFERENCES: 'cognify_preferences',
   ACTIVE_SESSION: 'cognify_active_session',
-  GUEST_USER: 'cognify_guest_user',
 };
 
 const DEFAULT_PREFERENCES: UserPreference = {
   id: 'local_pref',
-  userId: 'guest',
+  userId: 'user',
   focusDuration: 25,
   shortBreakDuration: 5,
   longBreakDuration: 15,
@@ -256,7 +255,7 @@ export const LocalStorageRepository = {
 
     const newSession: FocusSession = {
       id: `sess_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
-      userId: 'guest',
+      userId: 'user',
       sessionType,
       status: 'COMPLETED',
       plannedDuration: durationSeconds,

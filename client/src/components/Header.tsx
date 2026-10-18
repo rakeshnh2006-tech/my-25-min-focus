@@ -1,5 +1,5 @@
 import React from 'react';
-import { Menu, Bell, BellOff, Volume2, VolumeX, CloudRain, LogIn, LogOut } from 'lucide-react';
+import { Menu, Bell, BellOff, Volume2, VolumeX, CloudRain, LogOut } from 'lucide-react';
 import { useTimer } from '../context/TimerContext';
 import { useAuth } from '../context/AuthContext';
 
@@ -18,7 +18,7 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate 
     isRainPlaying,
     toggleRain,
   } = useTimer();
-  const { user, isGuest, logout } = useAuth();
+  const { user, logout } = useAuth();
 
   const getPageTitle = (id: string) => {
     switch (id) {
@@ -102,26 +102,15 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenMobile, onNavigate 
 
         <div className="h-5 w-px bg-slate-800 mx-0.5 hidden sm:block" />
 
-        {/* Sign in / Guest Sync Button or Sign Out */}
-        {isGuest ? (
-          <button
-            onClick={() => onNavigate('login')}
-            title="Sign in with Google to enable cloud sync"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 hover:text-blue-300 text-xs font-semibold transition-all"
-          >
-            <LogIn className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Connect Google</span>
-          </button>
-        ) : (
-          <button
-            onClick={logout}
-            title="Sign out of Cognify"
-            className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-xs font-semibold transition-all"
-          >
-            <LogOut className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Sign Out</span>
-          </button>
-        )}
+        {/* Sign Out Button */}
+        <button
+          onClick={logout}
+          title="Sign out of Cognify"
+          className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-white text-xs font-semibold transition-all"
+        >
+          <LogOut className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Sign Out</span>
+        </button>
       </div>
     </header>
   );

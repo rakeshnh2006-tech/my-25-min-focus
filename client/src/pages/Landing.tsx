@@ -85,13 +85,13 @@ export const Landing: React.FC<LandingProps> = ({ onStartFocusing, onOpenLogin }
               onClick={onOpenLogin}
               className="w-full sm:w-auto px-6 py-4 rounded-2xl bg-[#111827] hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-sm border border-slate-800 transition-all"
             >
-              Google Cloud Sync
+              Sign In with Google
             </button>
           </div>
 
           <p className="text-xs text-slate-500 flex items-center justify-center gap-2 pt-1">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Free &bull; No credit card required &bull; Works offline with LocalStorage</span>
+            <span>Free &bull; No password setup &bull; Fast, secure Google Sign-In</span>
           </p>
         </div>
 

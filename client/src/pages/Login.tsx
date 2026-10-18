@@ -8,7 +8,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
-  const { status, loginAsGuest } = useAuth();
+  const { status } = useAuth();
   const [errorParam, setErrorParam] = useState<string | null>(null);
   const [showSetupGuide, setShowSetupGuide] = useState(false);
 
@@ -18,7 +18,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
   // Automated time-aware welcome line
   const [welcomeInfo, setWelcomeInfo] = useState<{ greeting: string; subtitle: string; icon: string }>({
     greeting: 'Welcome to Cognify',
-    subtitle: 'Ready to enter your flow state?',
+    subtitle: 'Sign in with Google to access your focus workspace.',
     icon: '✨',
   });
 
@@ -27,25 +27,25 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
     if (hour >= 5 && hour < 12) {
       setWelcomeInfo({
         greeting: 'Good morning!',
-        subtitle: 'Start your day with deep, intentional focus.',
+        subtitle: 'Sign in to start your day with deep, intentional focus.',
         icon: '🌅',
       });
     } else if (hour >= 12 && hour < 17) {
       setWelcomeInfo({
         greeting: 'Good afternoon!',
-        subtitle: 'Keep your academic momentum going strong.',
+        subtitle: 'Sign in to keep your academic momentum going strong.',
         icon: '⚡',
       });
     } else if (hour >= 17 && hour < 22) {
       setWelcomeInfo({
         greeting: 'Good evening!',
-        subtitle: 'Every 25 minutes brings you closer to your goals.',
+        subtitle: 'Sign in — every 25 minutes brings you closer to your goals.',
         icon: '🌙',
       });
     } else {
       setWelcomeInfo({
         greeting: 'Welcome, Night Owl!',
-        subtitle: 'Quiet hours, peak clarity. Let’s make it count.',
+        subtitle: 'Quiet hours, peak clarity. Sign in to make it count.',
         icon: '🌌',
       });
     }
@@ -68,15 +68,6 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
     setQuote(getRandomQuote());
   };
 
-  const handleContinueGuest = () => {
-    loginAsGuest();
-    if (onBackToApp) {
-      onBackToApp();
-    } else {
-      window.location.hash = 'dashboard';
-    }
-  };
-
   const isConfigured = status?.googleOAuth?.configured && status?.database?.connected;
 
   return (
@@ -86,12 +77,12 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
 
       {/* Main Login Card */}
       <div className="w-full max-w-md bg-[#111827] border border-slate-800 rounded-3xl p-8 sm:p-10 shadow-2xl relative text-center">
-        {/* Back navigation if available */}
+        {/* Back navigation to landing page if available */}
         {onBackToApp && (
           <button
             onClick={onBackToApp}
             className="absolute top-6 left-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Back to App"
+            title="Back to Landing Page"
           >
             <ArrowLeft className="w-4 h-4" />
           </button>
@@ -151,7 +142,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
               {errorParam === 'oauth_not_configured'
                 ? 'Google OAuth credentials are not set in environment variables.'
                 : errorParam === 'db_connection_error'
-                ? 'Cloud database is currently unreachable. You can continue with full functionality in Local/Offline Mode below!'
+                ? 'Could not connect to database. Please verify DATABASE_URL in Vercel.'
                 : errorParam === 'auth_failed'
                 ? 'Google sign-in was cancelled or encountered an error. Please try again.'
                 : `Notice: ${errorParam}`}
@@ -159,8 +150,8 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
           </div>
         )}
 
-        {/* Action Controls */}
-        <div className="space-y-3">
+        {/* Action Controls - Google Authentication */}
+        <div className="space-y-3 pt-1">
           <button
             onClick={handleGoogleLogin}
             className="w-full flex items-center justify-center space-x-3 px-6 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm shadow-md transition-all hover:scale-[1.01] active:scale-[0.99]"
@@ -184,26 +175,11 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
               />
             </svg>
-            <span>Continue with Google</span>
+            <span>Sign in with Google</span>
           </button>
 
-          {/* Divider */}
-          <div className="relative flex py-1 items-center">
-            <div className="flex-grow border-t border-slate-800" />
-            <span className="flex-shrink mx-3 text-[10px] text-slate-500 uppercase tracking-widest">or</span>
-            <div className="flex-grow border-t border-slate-800" />
-          </div>
-
-          {/* Guest / Offline Mode Option */}
-          <button
-            onClick={handleContinueGuest}
-            className="w-full flex items-center justify-center space-x-2 px-6 py-3 rounded-2xl bg-[#080D1A] hover:bg-slate-800/80 text-slate-300 hover:text-white font-semibold text-xs border border-slate-800 transition-all"
-          >
-            <span>Continue in Offline / Guest Mode</span>
-          </button>
-
-          <p className="text-[11px] text-slate-500 pt-1">
-            Zero passwords required &bull; Private study logs preserved in your browser
+          <p className="text-[11px] text-slate-500 pt-2">
+            Authentication is required to sync your focus sessions, tasks, and coursework.
           </p>
         </div>
 

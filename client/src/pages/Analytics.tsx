@@ -183,12 +183,6 @@ export const AnalyticsPage: React.FC = () => {
 
   const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
-    if (user?.isGuest) {
-      computeLocalAnalytics(range);
-      setIsLoading(false);
-      return;
-    }
-
     try {
       const [sumRes, trendRes, subRes, heatRes] = await Promise.all([
         apiRequest<{ summary: AnalyticsSummary }>('/api/analytics/summary'),
@@ -206,7 +200,7 @@ export const AnalyticsPage: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [range, user?.isGuest, computeLocalAnalytics]);
+  }, [range, computeLocalAnalytics]);
 
   useEffect(() => {
     fetchAnalytics();

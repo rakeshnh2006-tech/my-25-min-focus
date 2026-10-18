@@ -46,29 +46,6 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
 
   const fetchTasks = useCallback(async () => {
-    // If guest user, immediately load from LocalStorageRepository
-    if (user?.isGuest) {
-      let localTasks = LocalStorageRepository.getTasks();
-      if (selectedSubjectFilter !== 'ALL') {
-        localTasks = localTasks.filter((t) => t.subjectId === selectedSubjectFilter);
-      }
-      if (filter === 'completed') {
-        localTasks = localTasks.filter((t) => t.isCompleted);
-      } else if (filter === 'today') {
-        const todayStr = new Date().toISOString().split('T')[0];
-        localTasks = localTasks.filter(
-          (t) => !t.isCompleted && t.dueDate && t.dueDate.startsWith(todayStr)
-        );
-      } else if (filter === 'upcoming') {
-        localTasks = localTasks.filter((t) => !t.isCompleted && t.dueDate);
-      } else {
-        localTasks = localTasks.filter((t) => !t.isCompleted);
-      }
-      setTasks(localTasks);
-      return;
-    }
-
-    // Otherwise, try API with fallback to LocalStorage
     try {
       let query = `/api/tasks?filter=${filter}`;
       if (selectedSubjectFilter !== 'ALL') {
@@ -76,8 +53,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       }
       const data = await apiRequest<{ tasks: StudyTask[] }>(query);
       setTasks(data.tasks);
+      LocalStorageRepository.saveTasks(data.tasks);
     } catch {
-      // LocalStorage fallback if server/db is unreachable
+      // Local cache fallback if server/db is unreachable
       let localTasks = LocalStorageRepository.getTasks();
       if (selectedSubjectFilter !== 'ALL') {
         localTasks = localTasks.filter((t) => t.subjectId === selectedSubjectFilter);
@@ -89,7 +67,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
       }
       setTasks(localTasks);
     }
-  }, [filter, selectedSubjectFilter, user?.isGuest]);
+  }, [filter, selectedSubjectFilter]);
 
   useEffect(() => {
     fetchTasks();
@@ -143,15 +121,13 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
         };
         LocalStorageRepository.saveTask(updated);
 
-        if (!user?.isGuest) {
-          try {
-            await apiRequest(`/api/tasks/${editingTask.id}`, {
-              method: 'PATCH',
-              body: JSON.stringify(payload),
-            });
-          } catch {
-            // Local update succeeded, ignore cloud sync error
-          }
+        try {
+          await apiRequest(`/api/tasks/${editingTask.id}`, {
+            method: 'PATCH',
+            body: JSON.stringify(payload),
+          });
+        } catch {
+          // Local update succeeded, ignore temporary server failure
         }
       } else {
         const newTask: StudyTask = {
@@ -168,15 +144,13 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
         };
         LocalStorageRepository.saveTask(newTask);
 
-        if (!user?.isGuest) {
-          try {
-            await apiRequest('/api/tasks', {
-              method: 'POST',
-              body: JSON.stringify(payload),
-            });
-          } catch {
-            // Local update succeeded
-          }
+        try {
+          await apiRequest('/api/tasks', {
+            method: 'POST',
+            body: JSON.stringify(payload),
+          });
+        } catch {
+          // Local update succeeded
         }
       }
 
@@ -191,12 +165,10 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
     if (!deletingTaskId) return;
     try {
       LocalStorageRepository.deleteTask(deletingTaskId);
-      if (!user?.isGuest) {
-        try {
-          await apiRequest(`/api/tasks/${deletingTaskId}`, { method: 'DELETE' });
-        } catch {
-          // Local delete succeeded
-        }
+      try {
+        await apiRequest(`/api/tasks/${deletingTaskId}`, { method: 'DELETE' });
+      } catch {
+        // Local delete succeeded
       }
       setDeletingTaskId(null);
       fetchTasks();
@@ -208,15 +180,13 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
   const toggleTaskCompletion = async (task: StudyTask) => {
     try {
       LocalStorageRepository.toggleTask(task.id);
-      if (!user?.isGuest) {
-        try {
-          await apiRequest(`/api/tasks/${task.id}`, {
-            method: 'PATCH',
-            body: JSON.stringify({ isCompleted: !task.isCompleted }),
-          });
-        } catch {
-          // Local update succeeded
-        }
+      try {
+        await apiRequest(`/api/tasks/${task.id}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ isCompleted: !task.isCompleted }),
+        });
+      } catch {
+        // Local update succeeded
       }
       fetchTasks();
     } catch (err) {

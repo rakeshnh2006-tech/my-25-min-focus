@@ -13,7 +13,6 @@ export interface User {
   name: string;
   avatarUrl?: string | null;
   createdAt?: string;
-  isGuest?: boolean;
 }
 
 export interface UserPreference {

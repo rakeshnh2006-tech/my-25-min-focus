@@ -60,7 +60,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
           };
           addSubject(newSub);
 
-          if (!user?.isGuest) {
+          if (user) {
             await apiRequest('/api/subjects', {
               method: 'POST',
               body: JSON.stringify({

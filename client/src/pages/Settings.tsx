@@ -565,7 +565,7 @@ export const SettingsPage: React.FC = () => {
               <div>
                 <p className="text-sm font-bold text-white">{user?.name || 'Cognify Student'}</p>
                 <p className="text-xs text-slate-400">
-                  {user?.isGuest ? 'Offline / LocalStorage Guest Session' : user?.email || 'Google Account'}
+                  {user?.email || 'Google Account'}
                 </p>
               </div>
             </div>
@@ -577,7 +577,7 @@ export const SettingsPage: React.FC = () => {
               className="flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl text-xs font-semibold text-rose-400 hover:text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 transition-all duration-200"
             >
               <LogOut className="w-4 h-4" />
-              <span>{user?.isGuest ? 'Exit Guest Session' : 'Sign Out of Cognify'}</span>
+              <span>Sign Out of Cognify</span>
             </button>
           </div>
         </div>

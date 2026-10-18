@@ -76,8 +76,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
     setDailySummary(LocalStorageRepository.getDailySummary());
     setRecentSessions(LocalStorageRepository.getSessions().slice(0, 5));
 
-    // If cloud authenticated, fetch latest
-    if (user && !user.isGuest) {
+    // If authenticated with Google, fetch latest from server
+    if (user) {
       try {
         const [taskRes, dashRes] = await Promise.all([
           apiRequest<{ tasks: StudyTask[] }>('/api/tasks?filter=active'),

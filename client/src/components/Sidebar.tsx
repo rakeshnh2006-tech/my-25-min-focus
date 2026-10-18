@@ -11,7 +11,6 @@ import {
   X,
   Play,
   Pause,
-  LogIn,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTimer } from '../context/TimerContext';
@@ -30,7 +29,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onCloseMobile,
 }) => {
   const { user, logout } = useAuth();
-  const isGuest = user?.isGuest;
   const { status, secondsRemaining, mode } = useTimer();
 
   const navItems = [
@@ -175,28 +173,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="min-w-0">
                 <p className="text-xs font-semibold text-white truncate">{user.name}</p>
                 <p className="text-[10px] text-slate-400 truncate">
-                  {isGuest ? 'Local / Offline Mode' : 'Cloud Sync Active'}
+                  {user.email || 'Google Account'}
                 </p>
               </div>
             </div>
 
-            {isGuest ? (
-              <button
-                onClick={() => onNavigate('login')}
-                title="Sign in with Google"
-                className="p-1.5 text-blue-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <LogIn className="w-4 h-4" />
-              </button>
-            ) : (
-              <button
-                onClick={logout}
-                title="Log out"
-                className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
-              </button>
-            )}
+            <button
+              onClick={logout}
+              title="Sign out of Cognify"
+              className="p-1.5 text-slate-400 hover:text-rose-400 rounded-lg hover:bg-slate-800 transition-colors"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           </div>
         ) : null}
       </div>

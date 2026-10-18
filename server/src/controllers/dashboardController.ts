@@ -16,6 +16,7 @@ export async function getDashboardSummary(req: Request, res: Response) {
   // Determine start and end of today in user's timezone
   const now = new Date();
   const todayKey = StreakService.formatDateKey(now, timezone);
+  const endOfToday = new Date(`${todayKey}T23:59:59.999Z`);
 
   // Safely query recent completed focus sessions around today
   const candidateStart = new Date(now.getTime() - 36 * 60 * 60 * 1000);

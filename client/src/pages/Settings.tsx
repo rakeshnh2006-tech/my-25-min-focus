@@ -183,7 +183,7 @@ export const SettingsPage: React.FC = () => {
 
       <form onSubmit={handleSave} className="space-y-6">
         {/* Section 1: Timer Durations */}
-        <div className="clay-card p-6 space-y-5">
+        <div className="clay-card p-4 sm:p-6 space-y-5">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
             <div className="p-2.5 rounded-2xl bg-blue-500/15 border border-blue-400/30 text-blue-400 shadow-inner">
               <Sliders className="w-4 h-4" />
@@ -273,7 +273,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Section 2: Audio & Ambient Soundscape */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-5">
+        <div className="clay-card p-4 sm:p-6 space-y-5">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
             <div className="p-2 rounded-xl bg-violet-500/10 text-violet-400">
               <Volume2 className="w-4 h-4" />
@@ -367,7 +367,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Section 3: Visual Theme & Timezone */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-5">
+        <div className="clay-card p-4 sm:p-6 space-y-5">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
             <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
               <Palette className="w-4 h-4" />
@@ -418,7 +418,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Section 4: Data Management & Backup */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div className="clay-card p-4 sm:p-6 space-y-4">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
             <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400">
               <Download className="w-4 h-4" />
@@ -451,7 +451,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Section 5: System Diagnostics & Setup Help */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div className="clay-card p-4 sm:p-6 space-y-4">
           <div className="flex items-center justify-between pb-2 border-b border-slate-800">
             <div className="flex items-center space-x-2">
               <ShieldCheck className="w-4 h-4 text-blue-400" />
@@ -538,7 +538,7 @@ export const SettingsPage: React.FC = () => {
         </div>
 
         {/* Section 6: Account & Sign Out */}
-        <div className="bg-[#111827] rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div className="clay-card p-4 sm:p-6 space-y-4">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
             <div className="p-2 rounded-xl bg-slate-800 text-slate-300">
               <UserIcon className="w-4 h-4" />
@@ -587,7 +587,7 @@ export const SettingsPage: React.FC = () => {
           <button
             type="submit"
             disabled={isSaving}
-            className="clay-btn clay-btn-focus px-9 py-3.5 rounded-2xl text-sm font-extrabold shadow-xl disabled:opacity-50"
+            className="w-full sm:w-auto clay-btn clay-btn-focus px-9 py-3.5 rounded-2xl text-sm font-extrabold shadow-xl disabled:opacity-50"
           >
             {isSaving ? 'Saving...' : 'Save Preferences'}
           </button>

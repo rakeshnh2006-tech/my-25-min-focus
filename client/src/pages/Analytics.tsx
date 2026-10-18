@@ -225,12 +225,12 @@ export const AnalyticsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl clay-inset w-fit">
+        <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl clay-inset max-w-full overflow-x-auto no-scrollbar">
           {(['7d', '30d', '90d'] as const).map((r) => (
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`clay-chip px-3.5 py-1.5 text-xs font-bold uppercase transition-all ${
+              className={`clay-chip px-3.5 py-1.5 text-xs font-bold uppercase transition-all flex-shrink-0 ${
                 range === r
                   ? 'clay-btn-focus shadow-md shadow-blue-500/25'
                   : 'text-slate-400 hover:text-white'
@@ -285,7 +285,7 @@ export const AnalyticsPage: React.FC = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Daily Focus Time Area Chart (Clay Glass Panel) */}
-        <div className="lg:col-span-8 clay-card p-6 space-y-4">
+        <div className="lg:col-span-8 clay-card p-4 sm:p-6 space-y-4">
           <div>
             <h2 className="text-base font-extrabold text-white tracking-tight">Daily Focus Trend</h2>
             <p className="text-xs text-slate-400">
@@ -347,7 +347,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Subject Breakdown Donut Chart (Clay Glass Panel) */}
-        <div className="lg:col-span-4 clay-card p-6 flex flex-col justify-between">
+        <div className="lg:col-span-4 clay-card p-4 sm:p-6 flex flex-col justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-1">
               <PieIcon className="w-4 h-4 text-blue-400" />
@@ -413,7 +413,7 @@ export const AnalyticsPage: React.FC = () => {
       </div>
 
       {/* Study Activity Heatmap (Clay Glass Panel) */}
-      <div className="clay-card p-6 space-y-4">
+      <div className="clay-card p-4 sm:p-6 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
             <div className="flex items-center space-x-2">
@@ -435,7 +435,7 @@ export const AnalyticsPage: React.FC = () => {
         </div>
 
         {/* Heatmap Grid */}
-        <div className="pt-2 overflow-x-auto">
+        <div className="pt-2 overflow-x-auto no-scrollbar">
           <div className="grid grid-flow-col grid-rows-7 gap-1.5 w-max">
             {heatmap.map((day) => (
               <div

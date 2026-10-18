@@ -247,10 +247,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   return (
     <div className="max-w-5xl mx-auto space-y-8 animate-in fade-in duration-300">
       {/* 1. HERO TIMER CARD (Center & Main Element with Claymorphism & Frosted Glass) */}
-      <div className="clay-card p-6 sm:p-10 relative overflow-hidden">
+      <div className="clay-card p-4 xs:p-6 sm:p-10 relative overflow-hidden">
         {/* Ambient Glowing Aura matching active mode */}
         <div
-          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[460px] h-[460px] rounded-full blur-[130px] pointer-events-none opacity-25 transition-colors duration-700 -z-10 ${
+          className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[320px] sm:w-[460px] h-[320px] sm:h-[460px] rounded-full blur-[100px] sm:blur-[130px] pointer-events-none opacity-25 transition-colors duration-700 -z-10 ${
             mode === 'FOCUS'
               ? 'bg-blue-500'
               : mode === 'SHORT_BREAK'
@@ -262,9 +262,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         />
 
         {/* Top Controls: Mode Switcher & Presets */}
-        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-4 pb-6 border-b border-white/[0.08]">
+        <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 pb-4 sm:pb-6 border-b border-white/[0.08]">
           {/* Tactile Recessed Mode Switcher */}
-          <div className="flex items-center p-1.5 rounded-2xl clay-inset">
+          <div className="flex items-center p-1 sm:p-1.5 rounded-2xl clay-inset max-w-full overflow-x-auto no-scrollbar">
             {modes.map((m) => {
               const isActive = mode === m.id;
               let activeClass = 'clay-btn-focus shadow-lg shadow-blue-500/25';
@@ -276,7 +276,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 <button
                   key={m.id}
                   onClick={() => switchMode(m.id)}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                  className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-bold whitespace-nowrap transition-all ${
                     isActive
                       ? `clay-btn ${activeClass}`
                       : 'text-slate-400 hover:text-slate-200 hover:bg-white/[0.04]'
@@ -290,7 +290,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
           {/* Preset Chips (Only for countdown modes) */}
           {mode !== 'STOPWATCH' && (
-            <div className="flex items-center space-x-1.5">
+            <div className="flex items-center space-x-1.5 overflow-x-auto max-w-full pb-1 sm:pb-0 no-scrollbar">
               <span className="text-[11px] text-slate-400 font-semibold mr-1 hidden sm:inline uppercase tracking-wider">
                 Presets:
               </span>
@@ -299,7 +299,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   key={p.id}
                   onClick={() => applyPreset(p.id)}
                   title={p.desc}
-                  className={`clay-chip px-3 py-1.5 text-xs font-mono font-bold transition-all ${
+                  className={`clay-chip px-2.5 sm:px-3 py-1.5 text-[11px] font-mono font-bold whitespace-nowrap transition-all ${
                     activePreset === p.id
                       ? 'border border-blue-400/50 bg-blue-500/20 text-blue-300 shadow-md shadow-blue-500/20'
                       : 'border border-white/[0.08] bg-slate-900/60 text-slate-400 hover:text-white hover:border-white/[0.15]'
@@ -313,17 +313,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {/* Subject & Task Selector Header */}
-        <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 pt-6 pb-2">
+        <div className="relative z-10 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-4 sm:pt-6 pb-2">
           {/* Subject Dropdown */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5 flex-shrink-0">
               <BookOpen className="w-3.5 h-3.5 text-blue-400" />
               <span>Subject:</span>
             </span>
             <select
               value={selectedSubjectId || ''}
               onChange={(e) => setSelectedSubjectId(e.target.value || null)}
-              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
+              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 w-full sm:w-auto focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
             >
               <option value="">General Study (No Subject)</option>
               {subjects.map((s) => (
@@ -335,15 +335,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
 
           {/* Task Dropdown & Quick Add */}
-          <div className="flex items-center space-x-2">
-            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <span className="text-xs text-slate-300 font-semibold flex items-center gap-1.5 flex-shrink-0">
               <CheckSquare className="w-3.5 h-3.5 text-emerald-400" />
               <span>Task:</span>
             </span>
             <select
               value={selectedTaskId || ''}
               onChange={(e) => setSelectedTaskId(e.target.value || null)}
-              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 max-w-[200px] truncate cursor-pointer"
+              className="clay-inset-sm text-xs font-semibold text-slate-200 rounded-xl px-3.5 py-2 flex-1 sm:flex-initial sm:max-w-[200px] truncate focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
             >
               <option value="">None Selected</option>
               {tasks
@@ -357,7 +357,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <button
               onClick={() => setShowQuickAddTask(!showQuickAddTask)}
               title="Add task quickly"
-              className="clay-chip p-2 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]"
+              className="clay-chip p-2 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08] flex-shrink-0"
             >
               <Plus className="w-3.5 h-3.5" />
             </button>
@@ -377,7 +377,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             />
             <button
               type="submit"
-              className="clay-btn clay-btn-focus px-4 py-2 text-xs font-bold"
+              className="clay-btn clay-btn-focus px-4 py-2 text-xs font-bold flex-shrink-0"
             >
               Set Task
             </button>
@@ -385,8 +385,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         )}
 
         {/* 2. THE CIRCULAR PROGRESS TIMER DISPLAY (Tactile Clay Dial & Glow Arc) */}
-        <div className="relative z-10 flex flex-col items-center justify-center my-6 sm:my-10">
-          <div className="relative w-76 h-76 sm:w-84 sm:h-84 flex items-center justify-center">
+        <div className="relative z-10 flex flex-col items-center justify-center my-4 sm:my-10">
+          <div className="relative w-[260px] h-[260px] xs:w-[280px] xs:h-[280px] sm:w-[320px] sm:h-[320px] max-w-full aspect-square flex items-center justify-center">
             {/* Volumetric Clay Dial Backplate */}
             <div className="absolute inset-2 clay-timer-dial pointer-events-none" />
 
@@ -436,10 +436,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </svg>
 
             {/* Inner Content Display */}
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 select-none z-20">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4 sm:p-6 select-none z-20">
               {/* Session Type Pill */}
               <div
-                className={`clay-chip inline-flex items-center space-x-1.5 px-3.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-widest mb-2 border ${
+                className={`clay-chip inline-flex items-center space-x-1.5 px-3 sm:px-3.5 py-0.5 sm:py-1 rounded-full text-[9px] sm:text-[10px] font-extrabold uppercase tracking-widest mb-1 sm:mb-2 border ${
                   mode === 'FOCUS'
                     ? 'bg-blue-500/15 text-blue-300 border-blue-400/30'
                     : mode === 'SHORT_BREAK'
@@ -461,12 +461,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               </div>
 
               {/* Countdown Digits with tactile glow */}
-              <span className="text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#F8FAFC] font-mono tracking-tight my-1 tabular-nums drop-shadow-[0_4px_16px_rgba(0,0,0,0.7)]">
+              <span className="text-4xl xs:text-5xl sm:text-6xl lg:text-7xl font-extrabold text-[#F8FAFC] font-mono tracking-tight my-0.5 sm:my-1 tabular-nums drop-shadow-[0_4px_16px_rgba(0,0,0,0.7)]">
                 {formatTime(secondsRemaining)}
               </span>
 
               {/* Active Subject & Task Context Label */}
-              <div className="mt-1 max-w-[220px] truncate">
+              <div className="mt-0.5 sm:mt-1 max-w-[180px] sm:max-w-[220px] truncate">
                 {activeTask ? (
                   <p className="text-xs font-bold text-slate-200 truncate">{activeTask.title}</p>
                 ) : activeSubject ? (
@@ -480,11 +480,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
               {/* Cycle indicator dots (4 sessions per long break) */}
               {mode === 'FOCUS' && (
-                <div className="flex items-center space-x-2 mt-3">
+                <div className="flex items-center space-x-1.5 sm:space-x-2 mt-2 sm:mt-3">
                   {[1, 2, 3, 4].map((c) => (
                     <span
                       key={c}
-                      className={`w-2.5 h-2.5 rounded-full transition-all duration-300 ${
+                      className={`w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full transition-all duration-300 ${
                         c < cycleCount
                           ? 'bg-blue-400 ring-2 ring-blue-500/40 shadow-sm shadow-blue-500/50'
                           : c === cycleCount && status === 'RUNNING'
@@ -501,16 +501,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
         </div>
 
         {/* 3. PRIMARY CONTROLS BAR (Tactile Clay Buttons) */}
-        <div className="relative z-10 flex flex-wrap items-center justify-center gap-3 sm:gap-4 pt-2">
+        <div className="relative z-10 flex flex-wrap items-center justify-center gap-2.5 sm:gap-3.5 pt-2 w-full">
           {/* Main Action Button (Start / Pause / Resume) */}
           {status === 'IDLE' && (
             <button
               onClick={startTimer}
-              className="clay-btn clay-btn-focus flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-focus flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base flex-1 sm:flex-initial min-w-[140px] shadow-xl"
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Start Session</span>
-              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold">
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold hidden xs:inline">
                 Space
               </span>
             </button>
@@ -519,11 +519,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'RUNNING' && (
             <button
               onClick={pauseTimer}
-              className="clay-btn clay-btn-amber flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-amber flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base flex-1 sm:flex-initial min-w-[140px] shadow-xl"
             >
               <Pause className="w-5 h-5 fill-current" />
               <span>Pause</span>
-              <span className="text-[10px] bg-slate-950/20 px-2 py-0.5 rounded-md text-slate-950 font-mono font-bold">
+              <span className="text-[10px] bg-slate-950/20 px-2 py-0.5 rounded-md text-slate-950 font-mono font-bold hidden xs:inline">
                 Space
               </span>
             </button>
@@ -532,11 +532,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {status === 'PAUSED' && (
             <button
               onClick={resumeTimer}
-              className="clay-btn clay-btn-focus flex items-center space-x-3 px-8 sm:px-9 py-4 rounded-2xl text-base shadow-xl"
+              className="clay-btn clay-btn-focus flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base flex-1 sm:flex-initial min-w-[140px] shadow-xl"
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Resume</span>
-              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold">
+              <span className="text-[10px] bg-white/20 px-2 py-0.5 rounded-md text-white font-mono font-bold hidden xs:inline">
                 Space
               </span>
             </button>
@@ -547,7 +547,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <button
               disabled
               title="Start a session first before ending it"
-              className="clay-chip flex items-center space-x-2.5 px-6 sm:px-7 py-4 rounded-2xl text-base bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 select-none"
+              className="clay-chip flex items-center justify-center space-x-2 px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 select-none flex-1 sm:flex-initial min-w-[130px]"
             >
               <Square className="w-4 h-4 fill-current" />
               <span>End Session</span>
@@ -556,7 +556,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             <button
               onClick={() => endSession()}
               title="End session early and record your focus progress"
-              className="clay-btn bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 hover:from-rose-600 hover:to-red-700 text-white flex items-center space-x-2.5 px-6 sm:px-7 py-4 rounded-2xl text-base shadow-xl shadow-rose-500/25 border-t border-rose-300/30 transition-all active:scale-95"
+              className="clay-btn bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 hover:from-rose-600 hover:to-red-700 text-white flex items-center justify-center space-x-2 px-5 sm:px-7 py-3.5 sm:py-4 rounded-2xl text-sm sm:text-base shadow-xl shadow-rose-500/25 border-t border-rose-300/30 transition-all active:scale-95 flex-1 sm:flex-initial min-w-[130px]"
             >
               <Square className="w-4 h-4 fill-current" />
               <span>End Session</span>
@@ -567,13 +567,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           {activeTask ? (
             <button
               onClick={() => setShowAssignTaskModal(true)}
-              className="clay-chip flex items-center space-x-2.5 px-5 py-4 rounded-2xl text-sm font-bold bg-blue-500/15 hover:bg-blue-500/25 text-blue-200 border border-blue-400/40 shadow-lg shadow-blue-500/15 transition-all max-w-[220px] sm:max-w-[260px] group"
+              className="clay-chip flex items-center justify-between sm:justify-start space-x-2.5 px-4 sm:px-5 py-3 sm:py-4 rounded-2xl text-xs sm:text-sm font-bold bg-blue-500/15 hover:bg-blue-500/25 text-blue-200 border border-blue-400/40 shadow-lg shadow-blue-500/15 transition-all w-full sm:w-auto max-w-full sm:max-w-[260px] group"
               title={`Assigned Task: "${activeTask.title}". Click to switch or unassign.`}
             >
-              <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <div className="flex flex-col text-left min-w-0">
-                <span className="text-[9px] text-blue-300 font-semibold uppercase tracking-wider leading-none">Assigned Task</span>
-                <span className="truncate text-xs text-white font-bold">{activeTask.title}</span>
+              <div className="flex items-center space-x-2 min-w-0">
+                <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <div className="flex flex-col text-left min-w-0">
+                  <span className="text-[9px] text-blue-300 font-semibold uppercase tracking-wider leading-none">Task</span>
+                  <span className="truncate text-xs text-white font-bold">{activeTask.title}</span>
+                </div>
               </div>
               <span className="text-[10px] bg-blue-500/30 text-blue-200 px-2 py-0.5 rounded-md font-mono font-bold flex-shrink-0 ml-1">
                 {activeTask.completedSessions}/{activeTask.estimatedSessions}🍅
@@ -582,7 +584,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           ) : (
             <button
               onClick={() => setShowAssignTaskModal(true)}
-              className="clay-btn bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white flex items-center space-x-2 px-6 py-4 rounded-2xl text-base font-bold border border-white/[0.08] hover:border-blue-500/40 shadow-xl transition-all active:scale-95 group"
+              className="clay-btn bg-slate-900/80 hover:bg-slate-800 text-slate-200 hover:text-white flex items-center justify-center space-x-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl text-xs sm:text-sm font-bold border border-white/[0.08] hover:border-blue-500/40 shadow-xl transition-all active:scale-95 group w-full sm:w-auto"
               title="Assign a study task to this focus session"
             >
               <Target className="w-4 h-4 text-blue-400 group-hover:text-blue-300 transition-colors" />
@@ -593,76 +595,79 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             </button>
           )}
 
-          {/* Reset Control */}
-          <button
-            onClick={resetTimer}
-            title="Reset timer [R]"
-            disabled={status === 'IDLE'}
-            className={`clay-chip p-3.5 transition-all ${
-              status !== 'IDLE'
-                ? 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
-                : 'bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50'
-            }`}
-          >
-            <RotateCcw className="w-4 h-4" />
-          </button>
-
-          {/* Skip Control */}
-          <button
-            onClick={skipSession}
-            title="Skip to next session"
-            className="clay-chip p-3.5 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08] transition-all"
-          >
-            <SkipForward className="w-4 h-4" />
-          </button>
-
-          {/* Picture in Picture Mini-Timer */}
-          <button
-            onClick={togglePiP}
-            title={isPiPActive ? 'Exit Picture-in-Picture' : 'Open Picture-in-Picture Mini Timer'}
-            className={`clay-chip p-3.5 transition-all ${
-              isPiPActive
-                ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
-                : 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
-            }`}
-          >
-            <PictureInPicture2 className="w-4 h-4" />
-          </button>
-
-          {/* Ambient Rain Sound Toggle & Volume */}
-          <div className="relative">
+          {/* Quick Utility Control Toolbar on mobile */}
+          <div className="flex items-center justify-center gap-2 sm:gap-2.5 w-full sm:w-auto mt-1 sm:mt-0">
+            {/* Reset Control */}
             <button
-              onClick={() => {
-                toggleRain();
-                setShowRainSlider(true);
-              }}
-              title={isRainPlaying ? 'Rain sound playing (click to toggle)' : 'Play ambient rain sound'}
-              className={`clay-chip p-3.5 transition-all flex items-center gap-1.5 ${
-                isRainPlaying
-                  ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
-                  : 'bg-slate-900/80 text-slate-400 hover:text-white border border-white/[0.08]'
+              onClick={resetTimer}
+              title="Reset timer [R]"
+              disabled={status === 'IDLE'}
+              className={`clay-chip p-3 sm:p-3.5 transition-all ${
+                status !== 'IDLE'
+                  ? 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
+                  : 'bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50'
               }`}
             >
-              <CloudRain className="w-4 h-4" />
-              {isRainPlaying && <span className="text-[10px] font-bold text-blue-300 hidden sm:inline">Rain</span>}
+              <RotateCcw className="w-4 h-4" />
             </button>
 
-            {/* Quick volume slider popover */}
-            {isRainPlaying && (
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-3.5 clay-card flex items-center space-x-2.5 z-30 shadow-2xl">
-                <VolumeX className="w-3.5 h-3.5 text-slate-400" />
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={rainVolume}
-                  onChange={(e) => setRainVolume(parseFloat(e.target.value))}
-                  className="w-20 accent-blue-500 cursor-pointer"
-                />
-                <Volume2 className="w-3.5 h-3.5 text-blue-400" />
-              </div>
-            )}
+            {/* Skip Control */}
+            <button
+              onClick={skipSession}
+              title="Skip to next session"
+              className="clay-chip p-3 sm:p-3.5 bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08] transition-all"
+            >
+              <SkipForward className="w-4 h-4" />
+            </button>
+
+            {/* Picture in Picture Mini-Timer */}
+            <button
+              onClick={togglePiP}
+              title={isPiPActive ? 'Exit Picture-in-Picture' : 'Open Picture-in-Picture Mini Timer'}
+              className={`clay-chip p-3 sm:p-3.5 transition-all ${
+                isPiPActive
+                  ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
+                  : 'bg-slate-900/80 text-slate-300 hover:text-white border border-white/[0.08]'
+              }`}
+            >
+              <PictureInPicture2 className="w-4 h-4" />
+            </button>
+
+            {/* Ambient Rain Sound Toggle & Volume */}
+            <div className="relative">
+              <button
+                onClick={() => {
+                  toggleRain();
+                  setShowRainSlider(true);
+                }}
+                title={isRainPlaying ? 'Rain sound playing (click to toggle)' : 'Play ambient rain sound'}
+                className={`clay-chip p-3 sm:p-3.5 transition-all flex items-center gap-1.5 ${
+                  isRainPlaying
+                    ? 'bg-blue-600/20 text-blue-400 border border-blue-400/40 shadow-lg shadow-blue-500/20'
+                    : 'bg-slate-900/80 text-slate-400 hover:text-white border border-white/[0.08]'
+                }`}
+              >
+                <CloudRain className="w-4 h-4" />
+                {isRainPlaying && <span className="text-[10px] font-bold text-blue-300 hidden md:inline">Rain</span>}
+              </button>
+
+              {/* Quick volume slider popover */}
+              {isRainPlaying && (
+                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 p-3.5 clay-card flex items-center space-x-2.5 z-30 shadow-2xl">
+                  <VolumeX className="w-3.5 h-3.5 text-slate-400" />
+                  <input
+                    type="range"
+                    min="0"
+                    max="1"
+                    step="0.05"
+                    value={rainVolume}
+                    onChange={(e) => setRainVolume(parseFloat(e.target.value))}
+                    className="w-20 accent-blue-500 cursor-pointer"
+                  />
+                  <Volume2 className="w-3.5 h-3.5 text-blue-400" />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -849,24 +854,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       {/* 4. ASSIGN TASK MODAL DIALOG */}
       {showAssignTaskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md">
-          <div className="clay-card w-full max-w-lg p-6 sm:p-7 relative border border-white/[0.12] shadow-2xl max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 xs:p-4 bg-black/75 backdrop-blur-md">
+          <div className="clay-card w-full max-w-lg p-4 xs:p-6 sm:p-7 relative border border-white/[0.12] shadow-2xl max-h-[92dvh] overflow-y-auto no-scrollbar flex flex-col">
             {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-white/[0.08]">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400">
-                  <Target className="w-5 h-5" />
+            <div className="flex items-start justify-between pb-3 xs:pb-4 border-b border-white/[0.08]">
+              <div className="flex items-center space-x-2.5 xs:space-x-3">
+                <div className="w-9 h-9 xs:w-10 xs:h-10 rounded-2xl bg-blue-500/15 border border-blue-400/30 flex items-center justify-center text-blue-400 flex-shrink-0">
+                  <Target className="w-4 h-4 xs:w-5 xs:h-5" />
                 </div>
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Assign Task to Session</h3>
-                  <p className="text-xs text-slate-400 mt-0.5">
+                  <h3 className="text-sm xs:text-base font-extrabold text-white">Assign Task to Session</h3>
+                  <p className="text-[11px] xs:text-xs text-slate-400 mt-0.5">
                     Link your focus time to a specific task and track progress
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowAssignTaskModal(false)}
-                className="clay-chip p-2 text-slate-400 hover:text-white transition-colors"
+                className="clay-chip p-2 text-slate-400 hover:text-white transition-colors flex-shrink-0"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -874,8 +879,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
             {/* Currently Assigned Task Banner (if any) */}
             {activeTask && (
-              <div className="mt-4 p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between">
-                <div className="flex items-center space-x-2.5 min-w-0">
+              <div className="mt-3 xs:mt-4 p-3 xs:p-3.5 rounded-2xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-between gap-2">
+                <div className="flex items-center space-x-2 xs:space-x-2.5 min-w-0">
                   <CheckSquare className="w-4 h-4 text-emerald-400 flex-shrink-0" />
                   <div className="min-w-0">
                     <span className="text-[10px] font-bold text-blue-300 uppercase tracking-wider block">
@@ -888,7 +893,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                 </div>
                 <button
                   onClick={handleUnassignTask}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all flex-shrink-0"
+                  className="px-2.5 xs:px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30 transition-all flex-shrink-0"
                 >
                   Unassign
                 </button>
@@ -896,23 +901,23 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             )}
 
             {/* Quick Add New Task Section */}
-            <form onSubmit={handleCreateAndAssignTask} className="mt-4 space-y-2.5">
+            <form onSubmit={handleCreateAndAssignTask} className="mt-3 xs:mt-4 space-y-2 xs:space-y-2.5">
               <label className="text-xs font-bold text-slate-300 flex items-center justify-between">
                 <span>Create &amp; Assign New Task</span>
                 <span className="text-[10px] text-slate-400 font-normal">Press enter to save</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-col xs:flex-row gap-2">
                 <input
                   type="text"
-                  placeholder="e.g. Chapter 4 Exercises, Research Paper Draft..."
+                  placeholder="e.g. Chapter 4 Exercises, Research Paper..."
                   value={newAssignTaskTitle}
                   onChange={(e) => setNewAssignTaskTitle(e.target.value)}
-                  className="flex-1 clay-inset rounded-xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
+                  className="w-full xs:flex-1 min-w-0 clay-inset rounded-xl px-3.5 py-2 xs:py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-400"
                 />
                 <button
                   type="submit"
                   disabled={!newAssignTaskTitle.trim()}
-                  className="clay-btn clay-btn-focus px-4 py-2.5 text-xs font-bold flex items-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed"
+                  className="clay-btn clay-btn-focus px-4 py-2 xs:py-2.5 text-xs font-bold flex items-center justify-center space-x-1.5 disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Assign</span>

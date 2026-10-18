@@ -155,10 +155,10 @@ export const TimerPage: React.FC = () => {
   const longBreakInterval = preference?.longBreakInterval || 4;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-in fade-in duration-300">
+    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 animate-in fade-in duration-300">
       {/* Mode Switcher Tabs */}
       <div className="flex items-center justify-center">
-        <div className="p-1.5 rounded-2xl glass-card border border-slate-800 flex space-x-1 sm:space-x-2">
+        <div className="p-1 sm:p-1.5 rounded-2xl glass-card border border-slate-800 flex flex-wrap sm:flex-nowrap justify-center gap-1 sm:gap-2 max-w-full">
           {(['FOCUS', 'SHORT_BREAK', 'LONG_BREAK'] as SessionType[]).map((m) => {
             const isCurrent = mode === m;
             const labels = {
@@ -170,7 +170,7 @@ export const TimerPage: React.FC = () => {
               <button
                 key={m}
                 onClick={() => switchMode(m)}
-                className={`px-4 sm:px-6 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
+                className={`px-3 sm:px-6 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold transition-all ${
                   isCurrent
                     ? 'bg-slate-800 text-white shadow-md border border-slate-700/60'
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/40'
@@ -184,32 +184,34 @@ export const TimerPage: React.FC = () => {
       </div>
 
       {/* Main Circular Timer Display Card */}
-      <div className="glass-card rounded-3xl p-8 sm:p-12 border border-slate-800/80 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
+      <div className="glass-card rounded-3xl p-4 xs:p-6 sm:p-12 border border-slate-800/80 shadow-2xl flex flex-col items-center justify-center relative overflow-hidden">
         {/* Cycle Dots Indicator */}
-        <div className="flex items-center space-x-2.5 mb-6">
+        <div className="flex items-center space-x-2.5 mb-4 sm:mb-6 flex-wrap justify-center">
           <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 mr-1">
             Interval {cycleCount} of {longBreakInterval}
           </span>
-          {Array.from({ length: longBreakInterval }).map((_, idx) => {
-            const isCompleted = idx + 1 < cycleCount;
-            const isCurrent = idx + 1 === cycleCount;
-            return (
-              <div
-                key={idx}
-                className={`w-3 h-3 rounded-full transition-all duration-300 ${
-                  isCompleted
-                    ? 'bg-focus-500 scale-100'
-                    : isCurrent && status === 'RUNNING'
-                    ? 'bg-focus-400 ring-4 ring-focus-500/20 animate-pulse'
-                    : 'bg-slate-800 border border-slate-700'
-                }`}
-              />
-            );
-          })}
+          <div className="flex items-center space-x-2">
+            {Array.from({ length: longBreakInterval }).map((_, idx) => {
+              const isCompleted = idx + 1 < cycleCount;
+              const isCurrent = idx + 1 === cycleCount;
+              return (
+                <div
+                  key={idx}
+                  className={`w-2.5 h-2.5 xs:w-3 xs:h-3 rounded-full transition-all duration-300 ${
+                    isCompleted
+                      ? 'bg-focus-500 scale-100'
+                      : isCurrent && status === 'RUNNING'
+                      ? 'bg-focus-400 ring-4 ring-focus-500/20 animate-pulse'
+                      : 'bg-slate-800 border border-slate-700'
+                  }`}
+                />
+              );
+            })}
+          </div>
         </div>
 
         {/* Circular SVG Ring */}
-        <div className="relative w-72 h-72 sm:w-80 sm:h-80 flex items-center justify-center my-4">
+        <div className="relative w-[240px] h-[240px] xs:w-[270px] xs:h-[270px] sm:w-80 sm:h-80 max-w-full aspect-square flex items-center justify-center my-2 sm:my-4">
           <svg className="w-full h-full -rotate-90 transform" viewBox="0 0 300 300">
             {/* Background track circle */}
             <circle
@@ -240,15 +242,15 @@ export const TimerPage: React.FC = () => {
 
           {/* Center countdown numbers & status */}
           <div className="absolute flex flex-col items-center justify-center text-center">
-            <span className={`text-xs font-extrabold uppercase tracking-widest px-3 py-1 rounded-full border mb-1 ${modeColors.badgeBg}`}>
+            <span className={`text-[10px] xs:text-xs font-extrabold uppercase tracking-widest px-2.5 xs:px-3 py-0.5 xs:py-1 rounded-full border mb-1 ${modeColors.badgeBg}`}>
               {mode === 'FOCUS' ? 'Focused Study' : mode === 'SHORT_BREAK' ? 'Short Break' : 'Long Break'}
             </span>
 
-            <span className="text-6xl sm:text-7xl font-extrabold text-white font-mono tracking-tight my-1 select-none">
+            <span className="text-5xl xs:text-6xl sm:text-7xl font-extrabold text-white font-mono tracking-tight my-1 select-none">
               {timeString}
             </span>
 
-            <span className="text-xs text-slate-400 font-medium">
+            <span className="text-[11px] xs:text-xs text-slate-400 font-medium">
               {status === 'RUNNING'
                 ? 'Interval in progress'
                 : status === 'PAUSED'
@@ -259,11 +261,11 @@ export const TimerPage: React.FC = () => {
         </div>
 
         {/* Primary Controls */}
-        <div className="flex items-center space-x-4 mt-6">
+        <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 mt-5 sm:mt-6 w-full max-w-md">
           {status === 'IDLE' && (
             <button
               onClick={startTimer}
-              className={`flex items-center space-x-2.5 px-8 py-4 rounded-2xl text-white font-extrabold text-base transition-all duration-200 hover:scale-105 active:scale-95 ${modeColors.primaryBtn}`}
+              className={`flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-white font-extrabold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 ${modeColors.primaryBtn}`}
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Start</span>
@@ -273,7 +275,7 @@ export const TimerPage: React.FC = () => {
           {status === 'RUNNING' && (
             <button
               onClick={pauseTimer}
-              className="flex items-center space-x-2.5 px-8 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-base border border-slate-700 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
+              className="flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-sm sm:text-base border border-slate-700 transition-all duration-200 hover:scale-105 active:scale-95 shadow-lg"
             >
               <Pause className="w-5 h-5 fill-current" />
               <span>Pause</span>
@@ -283,7 +285,7 @@ export const TimerPage: React.FC = () => {
           {status === 'PAUSED' && (
             <button
               onClick={resumeTimer}
-              className={`flex items-center space-x-2.5 px-8 py-4 rounded-2xl text-white font-extrabold text-base transition-all duration-200 hover:scale-105 active:scale-95 ${modeColors.primaryBtn}`}
+              className={`flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-white font-extrabold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 ${modeColors.primaryBtn}`}
             >
               <Play className="w-5 h-5 fill-current" />
               <span>Resume</span>
@@ -295,7 +297,7 @@ export const TimerPage: React.FC = () => {
             <button
               disabled
               title="Start a session first before ending it"
-              className="flex items-center space-x-2 px-6 py-4 rounded-2xl bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 font-bold text-sm"
+              className="flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-slate-900/40 text-slate-600 border border-white/[0.04] cursor-not-allowed opacity-50 font-bold text-xs sm:text-sm"
             >
               <Square className="w-4 h-4 fill-current" />
               <span>End Session</span>
@@ -304,7 +306,7 @@ export const TimerPage: React.FC = () => {
             <button
               onClick={() => endSession()}
               title="End and complete current session early"
-              className="flex items-center space-x-2 px-6 py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-extrabold text-sm shadow-lg shadow-rose-500/25 transition-all duration-200 hover:scale-105 active:scale-95"
+              className="flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2 px-5 sm:px-6 py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white font-extrabold text-xs sm:text-sm shadow-lg shadow-rose-500/25 transition-all duration-200 hover:scale-105 active:scale-95"
             >
               <Square className="w-4 h-4 fill-current" />
               <span>End Session</span>
@@ -312,35 +314,37 @@ export const TimerPage: React.FC = () => {
           )}
 
           {/* Reset / Abandon Controls */}
-          {status !== 'IDLE' && (
-            <button
-              onClick={() => setShowAbandonConfirm(true)}
-              title="Abandon session"
-              className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
-            >
-              <XCircle className="w-5 h-5" />
-            </button>
-          )}
+          <div className="flex items-center justify-center gap-2">
+            {status !== 'IDLE' && (
+              <button
+                onClick={() => setShowAbandonConfirm(true)}
+                title="Abandon session"
+                className="p-3 sm:p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-red-400 hover:border-red-500/30 transition-colors"
+              >
+                <XCircle className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* Reset when idle */}
-          {status === 'IDLE' && (
-            <button
-              onClick={resetTimer}
-              title="Reset timer (R)"
-              className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            >
-              <RotateCcw className="w-5 h-5" />
-            </button>
-          )}
+            {/* Reset when idle */}
+            {status === 'IDLE' && (
+              <button
+                onClick={resetTimer}
+                title="Reset timer (R)"
+                className="p-3 sm:p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              >
+                <RotateCcw className="w-5 h-5" />
+              </button>
+            )}
 
-          {/* Skip session */}
-          <button
-            onClick={() => setShowSkipConfirm(true)}
-            title="Skip to next session"
-            className="p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-          >
-            <SkipForward className="w-5 h-5" />
-          </button>
+            {/* Skip session */}
+            <button
+              onClick={() => setShowSkipConfirm(true)}
+              title="Skip to next session"
+              className="p-3 sm:p-3.5 rounded-2xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+            >
+              <SkipForward className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Motivational Quote Banner */}

@@ -228,4 +228,13 @@
   .glow-break-long {
     box-shadow: 0 0 30px -4px rgba(139, 92, 246, 0.35);
   }
+
+  /* Touch-friendly horizontal scrollbar hiding for mobile tab rows */
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
 }

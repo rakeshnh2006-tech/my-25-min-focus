@@ -194,19 +194,19 @@ export const SubjectsPage: React.FC = () => {
 
       {/* Quick Starter Suggestions */}
       {subjects.length < 3 && (
-        <div className="p-5 rounded-2xl clay-card space-y-3">
+        <div className="p-4 sm:p-5 rounded-2xl clay-card space-y-3">
           <div className="flex items-center space-x-2 text-xs font-bold text-blue-400 uppercase tracking-wider">
             <Sparkles className="w-4 h-4 text-amber-400" />
             <span>Quick Suggestions &mdash; 1-Click Setup</span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {STARTER_SUGGESTIONS.filter(
               (s) => !subjects.some((sub) => sub.name.toLowerCase() === s.name.toLowerCase())
             ).map((starter) => (
               <button
                 key={starter.name}
                 onClick={() => addStarterSubject(starter)}
-                className="clay-chip p-3.5 bg-slate-900/80 border border-white/[0.08] hover:border-blue-400/40 text-left transition-all group"
+                className="clay-chip p-3 xs:p-3.5 bg-slate-900/80 border border-white/[0.08] hover:border-blue-400/40 text-left transition-all group"
               >
                 <div className="flex items-center space-x-2">
                   <span
@@ -225,7 +225,7 @@ export const SubjectsPage: React.FC = () => {
       )}
 
       {/* Subjects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
         {subjects.length > 0 ? (
           subjects.map((sub) => {
             const weeklyHoursGoal = Math.round((sub.weeklyGoalMinutes || 0) / 60);
@@ -233,7 +233,7 @@ export const SubjectsPage: React.FC = () => {
             return (
               <div
                 key={sub.id}
-                className="clay-card clay-card-interactive p-6 flex flex-col justify-between relative overflow-hidden group"
+                className="clay-card clay-card-interactive p-4 sm:p-6 flex flex-col justify-between relative overflow-hidden group"
               >
                 {/* Accent top color strip */}
                 <div

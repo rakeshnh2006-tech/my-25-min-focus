@@ -89,18 +89,18 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
   const isConfigured = status?.googleOAuth?.configured && status?.database?.connected;
 
   return (
-    <div className="min-h-screen bg-[#070B16] flex flex-col items-center justify-center p-4 sm:p-6 text-[#F8FAFC] selection:bg-focus-500 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-[#070B16] flex flex-col items-center justify-center p-3.5 xs:p-5 sm:p-6 text-[#F8FAFC] selection:bg-focus-500 selection:text-white relative overflow-x-hidden py-8 sm:py-12">
       {/* Background ambient glowing mesh (Optimal cool study palette) */}
-      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[650px] h-[650px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
-      <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-[550px] h-[550px] bg-gradient-to-bl from-emerald-600/10 via-teal-600/5 to-transparent rounded-full blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute top-1/4 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[340px] sm:w-[650px] h-[340px] sm:h-[650px] bg-gradient-to-tr from-blue-600/15 via-indigo-600/10 to-transparent rounded-full blur-[100px] sm:blur-[140px] pointer-events-none -z-10" />
+      <div className="absolute bottom-1/4 right-1/3 translate-x-1/2 translate-y-1/2 w-[300px] sm:w-[550px] h-[300px] sm:h-[550px] bg-gradient-to-bl from-emerald-600/10 via-teal-600/5 to-transparent rounded-full blur-[100px] sm:blur-[140px] pointer-events-none -z-10" />
 
       {/* Main Login Card with Claymorphism & Frosted Glass */}
-      <div className="w-full max-w-md clay-card p-8 sm:p-10 relative text-center">
+      <div className="w-full max-w-md clay-card p-5 xs:p-7 sm:p-10 relative text-center my-auto">
         {/* Back navigation to landing page if available */}
         {onBackToApp && (
           <button
             onClick={onBackToApp}
-            className="absolute top-6 left-6 p-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
+            className="absolute top-4 left-4 sm:top-6 sm:left-6 p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/[0.06] transition-colors"
             title="Back to Landing Page"
           >
             <ArrowLeft className="w-4 h-4" />
@@ -108,32 +108,32 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
         )}
 
         {/* Tactile 3D App Logo Emblem */}
-        <div className="relative mx-auto w-20 h-20 mb-4 flex items-center justify-center">
+        <div className="relative mx-auto w-16 h-16 sm:w-20 sm:h-20 mb-3 sm:mb-4 flex items-center justify-center">
           <div className="absolute inset-0 bg-blue-500/25 rounded-3xl blur-xl" />
           <img
             src="/logo-256.png"
             alt="Cognify Logo"
-            className="relative w-20 h-20 rounded-2xl object-cover shadow-2xl border border-blue-400/40 hover:scale-105 transition-transform duration-300"
+            className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover shadow-2xl border border-blue-400/40 hover:scale-105 transition-transform duration-300"
           />
         </div>
 
         {/* App Branding */}
         <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Cognify</h1>
-        <p className="text-xs font-bold text-blue-400 tracking-wider uppercase mt-0.5">
+        <p className="text-[11px] sm:text-xs font-bold text-blue-400 tracking-wider uppercase mt-0.5">
           Focus deeper. Learn smarter.
         </p>
 
         {/* Automated Welcome Line */}
-        <div className="mt-3.5 mb-5">
-          <p className="text-sm font-bold text-white flex items-center justify-center gap-1.5">
+        <div className="mt-3 mb-4 sm:mt-3.5 sm:mb-5">
+          <p className="text-xs sm:text-sm font-bold text-white flex items-center justify-center gap-1.5">
             <span>{welcomeInfo.icon}</span>
             <span>{welcomeInfo.greeting}</span>
           </p>
-          <p className="text-xs text-slate-400 mt-0.5">{welcomeInfo.subtitle}</p>
+          <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5">{welcomeInfo.subtitle}</p>
         </div>
 
         {/* Motivational Quote Box (Recessed Clay Well with Smooth Text Transition) */}
-        <div className="my-5 p-4 rounded-2xl clay-inset text-left relative group">
+        <div className="my-4 sm:my-5 p-3.5 sm:p-4 rounded-2xl clay-inset text-left relative group">
           <div className="flex items-center justify-between mb-2">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400">
               Focus Wisdom
@@ -142,7 +142,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
               onClick={handleRefreshQuote}
               disabled={isQuoteTransitioning}
               title="Get another quote"
-              className="text-slate-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-white/[0.08] active:scale-90"
+              className="text-slate-400 hover:text-blue-300 transition-colors p-1.5 rounded-lg hover:bg-white/[0.08] active:scale-90"
               aria-label="Refresh quote"
             >
               <RefreshCw
@@ -160,7 +160,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
             }`}
           >
             <p className="text-xs text-slate-300 italic leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
-            <p className="text-[11px] font-semibold text-amber-400 mt-2 text-right">&mdash; {quote.author}</p>
+            <p className="text-[11px] font-semibold text-amber-400 mt-1.5 sm:mt-2 text-right">&mdash; {quote.author}</p>
           </div>
         </div>
 

@@ -230,12 +230,12 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
 
       {/* Filter Tabs & Subject Filter */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-        <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl clay-inset w-fit overflow-x-auto">
+        <div className="flex items-center space-x-1.5 p-1.5 rounded-2xl clay-inset max-w-full overflow-x-auto no-scrollbar">
           {(['all', 'today', 'upcoming', 'completed'] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setFilter(tab)}
-              className={`clay-chip px-3.5 py-1.5 text-xs font-bold capitalize transition-all ${
+              className={`clay-chip px-3.5 py-1.5 text-xs font-bold capitalize transition-all flex-shrink-0 ${
                 filter === tab
                   ? 'clay-btn-focus shadow-md shadow-blue-500/25'
                   : 'text-slate-400 hover:text-white'
@@ -270,9 +270,9 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
           tasks.map((task) => (
             <div
               key={task.id}
-              className="clay-card clay-card-interactive p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 group"
+              className="clay-card clay-card-interactive p-3.5 xs:p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 group"
             >
-              <div className="flex items-start space-x-3.5 overflow-hidden">
+              <div className="flex items-start space-x-3 xs:space-x-3.5 overflow-hidden">
                 <button
                   onClick={() => toggleTaskCompletion(task)}
                   className={`mt-0.5 w-6 h-6 rounded-lg clay-chip flex items-center justify-center transition-all flex-shrink-0 ${
@@ -319,7 +319,7 @@ export const TasksPage: React.FC<TasksPageProps> = ({ onNavigate }) => {
                     <p className="text-xs text-slate-400 line-clamp-1">{task.description}</p>
                   )}
 
-                  <div className="flex items-center space-x-4 text-[11px] text-slate-400 pt-0.5 font-medium">
+                  <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-[11px] text-slate-400 pt-0.5 font-medium">
                     {task.dueDate && (
                       <span className="flex items-center space-x-1">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" />

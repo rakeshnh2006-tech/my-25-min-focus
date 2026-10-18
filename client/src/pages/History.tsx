@@ -192,7 +192,7 @@ export const HistoryPage: React.FC = () => {
 
       {/* Sessions Table (Clay Glass Container) */}
       <div className="clay-card overflow-hidden shadow-2xl p-0">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto no-scrollbar">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] bg-slate-900/60 text-slate-400 font-bold uppercase tracking-wider">

@@ -38,7 +38,7 @@ export const Modal: React.FC<ModalProps> = ({
   }[maxWidth];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 xs:p-4">
       {/* Backdrop */}
       <div
         className="fixed inset-0 bg-black/75 backdrop-blur-sm transition-opacity"
@@ -47,14 +47,14 @@ export const Modal: React.FC<ModalProps> = ({
 
       {/* Dialog content */}
       <div
-        className={`relative z-10 w-full ${maxWidthClasses} clay-card p-6 sm:p-7 shadow-2xl transition-all border border-white/[0.1] text-slate-100 animate-in fade-in zoom-in-95 duration-200`}
+        className={`relative z-10 w-full ${maxWidthClasses} clay-card p-4 xs:p-6 sm:p-7 shadow-2xl transition-all border border-white/[0.1] text-slate-100 animate-in fade-in zoom-in-95 duration-200 max-h-[92dvh] overflow-y-auto`}
         role="dialog"
         aria-modal="true"
       >
-        <div className="flex items-start justify-between mb-5 pb-3 border-b border-white/[0.08]">
+        <div className="flex items-start justify-between mb-4 sm:mb-5 pb-3 border-b border-white/[0.08]">
           <div>
-            {title && <h2 className="text-xl font-extrabold text-white tracking-tight">{title}</h2>}
-            {description && <p className="text-xs text-slate-400 mt-1">{description}</p>}
+            {title && <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight">{title}</h2>}
+            {description && <p className="text-xs text-slate-400 mt-0.5 sm:mt-1">{description}</p>}
           </div>
           <button
             onClick={onClose}

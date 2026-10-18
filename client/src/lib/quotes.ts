@@ -24,7 +24,12 @@ export const STUDY_QUOTES: Quote[] = [
   { text: "The ability to perform deep work is becoming increasingly rare at exactly the same time it is becoming increasingly valuable in our economy.", author: "Cal Newport" }
 ];
 
-export function getRandomQuote(): Quote {
-  const index = Math.floor(Math.random() * STUDY_QUOTES.length);
-  return STUDY_QUOTES[index];
+export function getRandomQuote(currentText?: string): Quote {
+  if (STUDY_QUOTES.length <= 1) return STUDY_QUOTES[0];
+  let quote: Quote;
+  do {
+    const index = Math.floor(Math.random() * STUDY_QUOTES.length);
+    quote = STUDY_QUOTES[index];
+  } while (currentText && quote.text === currentText);
+  return quote;
 }

@@ -252,6 +252,31 @@
     100% { transform: translateX(200%); }
   }
 
+  /* Keyframes for smooth quote text reveal */
+  @keyframes wordReveal {
+    0% {
+      opacity: 0;
+      transform: translateY(5px);
+      filter: blur(4px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes authorFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateX(8px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
   /* Cognify Loading Screen (Consistent dark cinematic branding in all themes) */
   .cognify-loading-screen,
   html.light .cognify-loading-screen,

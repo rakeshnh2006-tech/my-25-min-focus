@@ -19,7 +19,7 @@ import {
 import { useTimer } from '../context/TimerContext';
 import { useAuth } from '../context/AuthContext';
 import { Modal } from '../components/Modal';
-import { getRandomQuote } from '../lib/quotes';
+import { FocusWisdomCard } from '../components/FocusWisdomCard';
 import { SessionType, StudyTask } from '../types';
 import { apiRequest } from '../lib/api';
 
@@ -54,22 +54,8 @@ export const TimerPage: React.FC = () => {
 
   const { subjects, preference } = useAuth();
   const [tasks, setTasks] = useState<StudyTask[]>([]);
-  const [quote, setQuote] = useState(() => getRandomQuote());
-  const [isQuoteTransitioning, setIsQuoteTransitioning] = useState<boolean>(false);
   const [showSkipConfirm, setShowSkipConfirm] = useState(false);
   const [showAbandonConfirm, setShowAbandonConfirm] = useState(false);
-
-  // Cycle quote occasionally with smooth text transition
-  useEffect(() => {
-    const quoteInterval = setInterval(() => {
-      setIsQuoteTransitioning(true);
-      setTimeout(() => {
-        setQuote(getRandomQuote());
-        setIsQuoteTransitioning(false);
-      }, 200);
-    }, 60000);
-    return () => clearInterval(quoteInterval);
-  }, []);
 
   // Fetch active tasks for task selector
   useEffect(() => {
@@ -347,23 +333,8 @@ export const TimerPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Motivational Quote Banner */}
-        <div className="mt-8 text-center max-w-md px-4 min-h-[48px] flex items-center justify-center">
-          <div
-            className={`transition-all duration-300 ease-out transform ${
-              isQuoteTransitioning
-                ? 'opacity-0 -translate-y-1 scale-[0.99] filter blur-[0.5px]'
-                : 'opacity-100 translate-y-0 scale-100 filter blur-0'
-            }`}
-          >
-            <p className="text-xs text-slate-400 italic">
-              &ldquo;{quote.text}&rdquo;
-            </p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest mt-1">
-              &mdash; {quote.author}
-            </p>
-          </div>
-        </div>
+        {/* Motivational Focus Wisdom Card */}
+        <FocusWisdomCard className="mt-8 max-w-md w-full" autoCycleIntervalMs={30000} />
       </div>
 
       {/* Subject & Task Selection Bar */}

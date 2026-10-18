@@ -248,7 +248,7 @@ export const TimerPage: React.FC = () => {
 
         {/* Primary Controls */}
         <div className="flex flex-wrap items-center justify-center gap-2.5 sm:gap-4 mt-5 sm:mt-6 w-full max-w-md">
-          {status === 'IDLE' && (
+          {(status === 'IDLE' || status === 'COMPLETED') && (
             <button
               onClick={startTimer}
               className={`flex-1 sm:flex-initial min-w-[130px] flex items-center justify-center space-x-2.5 px-6 sm:px-8 py-3.5 sm:py-4 rounded-2xl text-white font-extrabold text-sm sm:text-base transition-all duration-200 hover:scale-105 active:scale-95 ${modeColors.primaryBtn}`}
@@ -279,7 +279,7 @@ export const TimerPage: React.FC = () => {
           )}
 
           {/* End Session Button (Right beside Start / Pause / Resume) */}
-          {status === 'IDLE' ? (
+          {status === 'IDLE' || status === 'COMPLETED' ? (
             <button
               disabled
               title="Start a session first before ending it"
@@ -301,7 +301,7 @@ export const TimerPage: React.FC = () => {
 
           {/* Reset / Abandon Controls */}
           <div className="flex items-center justify-center gap-2">
-            {status !== 'IDLE' && (
+            {status !== 'IDLE' && status !== 'COMPLETED' && (
               <button
                 onClick={() => setShowAbandonConfirm(true)}
                 title="Abandon session"
@@ -311,8 +311,8 @@ export const TimerPage: React.FC = () => {
               </button>
             )}
 
-            {/* Reset when idle */}
-            {status === 'IDLE' && (
+            {/* Reset when idle or completed */}
+            {(status === 'IDLE' || status === 'COMPLETED') && (
               <button
                 onClick={resetTimer}
                 title="Reset timer (R)"
@@ -337,9 +337,8 @@ export const TimerPage: React.FC = () => {
         <FocusWisdomCard className="mt-8 max-w-md w-full" autoCycleIntervalMs={30000} />
       </div>
 
-      {/* Subject & Task Selection Bar */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Subject Selector */}
+      {/* Subject Selection Bar */}
+      <div className="max-w-md mx-auto w-full">
         <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
           <label className="flex items-center space-x-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
             <BookOpen className="w-3.5 h-3.5 text-focus-400" />
@@ -349,33 +348,12 @@ export const TimerPage: React.FC = () => {
             value={selectedSubjectId || ''}
             onChange={(e) => setSelectedSubjectId(e.target.value || null)}
             disabled={status === 'RUNNING'}
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500 disabled:opacity-50"
+            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500 disabled:opacity-50 cursor-pointer"
           >
             <option value="">General Study (No Subject)</option>
             {subjects.map((sub) => (
               <option key={sub.id} value={sub.id}>
                 {sub.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Task Selector */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-2">
-          <label className="flex items-center space-x-2 text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            <CheckSquare className="w-3.5 h-3.5 text-break-short" />
-            <span>Link to Study Task</span>
-          </label>
-          <select
-            value={selectedTaskId || ''}
-            onChange={(e) => setSelectedTaskId(e.target.value || null)}
-            disabled={status === 'RUNNING'}
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-focus-500 disabled:opacity-50"
-          >
-            <option value="">No Linked Task</option>
-            {tasks.map((task) => (
-              <option key={task.id} value={task.id}>
-                {task.title} ({task.completedSessions}/{task.estimatedSessions} Pomodoros)
               </option>
             ))}
           </select>

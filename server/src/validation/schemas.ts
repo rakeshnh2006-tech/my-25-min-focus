@@ -68,3 +68,8 @@ export const sessionQuerySchema = z.object({
   startDate: z.string().optional(),
   endDate: z.string().optional(),
 });
+
+export const deleteSessionsSchema = z.object({
+  sessionIds: z.array(z.string().min(1)).min(1, 'At least one session ID must be provided'),
+});
+

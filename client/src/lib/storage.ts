@@ -316,7 +316,8 @@ export const LocalStorageRepository = {
     durationSeconds: number,
     subjectId?: string | null,
     taskId?: string | null,
-    customId?: string
+    customId?: string,
+    plannedDurationSeconds?: number
   ): FocusSession {
     const sessions = this.getSessions();
     const subjects = this.getSubjects();
@@ -351,7 +352,7 @@ export const LocalStorageRepository = {
       userId: 'user',
       sessionType,
       status: 'COMPLETED',
-      plannedDuration: durationSeconds,
+      plannedDuration: plannedDurationSeconds || durationSeconds,
       actualDuration: durationSeconds,
       startedAt: new Date(Date.now() - durationSeconds * 1000).toISOString(),
       endedAt: new Date().toISOString(),
@@ -385,6 +386,27 @@ export const LocalStorageRepository = {
     }
 
     return newSession;
+  },
+
+  deleteSession(sessionId: string): void {
+    let sessions = this.getSessions();
+    sessions = sessions.filter((s) => s.id !== sessionId);
+    try {
+      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+    } catch {
+      // ignore
+    }
+  },
+
+  deleteSessions(sessionIds: string[]): void {
+    const idSet = new Set(sessionIds);
+    let sessions = this.getSessions();
+    sessions = sessions.filter((s) => !idSet.has(s.id));
+    try {
+      localStorage.setItem(STORAGE_KEYS.SESSIONS, JSON.stringify(sessions));
+    } catch {
+      // ignore
+    }
   },
 
   // --- DAILY FOCUS SUMMARY & STREAKS ---

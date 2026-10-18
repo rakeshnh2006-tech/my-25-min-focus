@@ -394,7 +394,8 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         duration,
         selectedSubjectId,
         selectedTaskId,
-        currentSessionId
+        currentSessionId,
+        totalDuration
       );
     }
 
@@ -407,6 +408,10 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       } catch (err) {
         console.warn('Failed to complete session on server (persisted locally):', err);
       }
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('focusflow_session_completed'));
     }
 
     setActiveSession(null);
@@ -515,6 +520,7 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Timer controls
   const startTimer = async () => {
     if (isActionInProgressRef.current || status === 'RUNNING') return;
+    isCompletingRef.current = false;
     isActionInProgressRef.current = true;
 
     try {
@@ -795,7 +801,8 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           elapsedSeconds,
           selectedSubjectId,
           effectiveTaskId,
-          currentSessionId
+          currentSessionId,
+          totalDuration
         );
       }
 
@@ -811,6 +818,10 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         } catch (err) {
           console.warn('Failed to complete session on server (persisted locally):', err);
         }
+      }
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('focusflow_session_completed'));
       }
 
       setActiveSession(null);
@@ -883,6 +894,10 @@ export const TimerProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
   const closeCompletionModal = () => {
     setShowCompletionModal(false);
+    setStatus('IDLE');
+    const defaultDur = getDefaultDurationForMode(mode);
+    setTotalDuration(defaultDur);
+    setSecondsRemaining(defaultDur);
   };
 
   const proceedToNextSession = () => {

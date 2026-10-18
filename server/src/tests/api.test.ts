@@ -8,7 +8,7 @@ describe('API Integration Tests', () => {
   const app = createApp();
 
   after(async () => {
-    await prisma.$disconnect();
+    await prisma.$disconnect().catch(() => {});
   });
 
   describe('Unauthenticated Access Protection', () => {
@@ -50,6 +50,18 @@ describe('API Integration Tests', () => {
 
     it('rejects unauthenticated GET /api/analytics/summary with 401', async () => {
       const res = await request(app).get('/api/analytics/summary');
+      assert.strictEqual(res.status, 401);
+      assert.strictEqual(res.body.error, 'Unauthorized');
+    });
+
+    it('rejects unauthenticated DELETE /api/sessions/:id with 401', async () => {
+      const res = await request(app).delete('/api/sessions/test-session-id');
+      assert.strictEqual(res.status, 401);
+      assert.strictEqual(res.body.error, 'Unauthorized');
+    });
+
+    it('rejects unauthenticated DELETE /api/sessions with 401', async () => {
+      const res = await request(app).delete('/api/sessions').send({ sessionIds: ['test-session-id'] });
       assert.strictEqual(res.status, 401);
       assert.strictEqual(res.body.error, 'Unauthorized');
     });
@@ -208,5 +220,80 @@ describe('API Integration Tests', () => {
         where: { id: { in: [sessionId1, sessionId2] } },
       });
     });
+
+    describe('Session Deletion API Tests', () => {
+      it('supports single session deletion and batch session deletion with ownership validation', async () => {
+        let existingUser;
+        try {
+          existingUser = await prisma.user.findFirst();
+        } catch {
+          return;
+        }
+        if (!existingUser) {
+          return;
+        }
+
+        const testApp = createApp();
+        testApp.post('/test-login', (req, res) => {
+          req.login(existingUser, (err) => {
+            if (err) return res.status(500).json({ error: err.message });
+            return res.json({ success: true, user: existingUser });
+          });
+        });
+
+        const agent = request.agent(testApp);
+        await agent.post('/test-login');
+
+        // 1. Create a session to delete individually
+        const s1 = await agent.post('/api/sessions').send({
+          sessionType: 'FOCUS',
+          plannedDuration: 1500,
+        });
+        assert.strictEqual(s1.status, 201);
+        const s1Id = s1.body.session.id;
+
+        // 2. Delete single session
+        const delRes1 = await agent.delete(`/api/sessions/${s1Id}`);
+        assert.strictEqual(delRes1.status, 200);
+        assert.strictEqual(delRes1.body.success, true);
+
+        // Deleting already deleted session should return 404
+        const delRes1Again = await agent.delete(`/api/sessions/${s1Id}`);
+        assert.strictEqual(delRes1Again.status, 404);
+
+        // 3. Create two sessions for batch deletion
+        const s2 = await agent.post('/api/sessions').send({
+          sessionType: 'FOCUS',
+          plannedDuration: 1500,
+        });
+        const s3 = await agent.post('/api/sessions').send({
+          sessionType: 'SHORT_BREAK',
+          plannedDuration: 300,
+        });
+        assert.strictEqual(s2.status, 201);
+        assert.strictEqual(s3.status, 201);
+        const s2Id = s2.body.session.id;
+        const s3Id = s3.body.session.id;
+
+        // 4. Test validation error when sessionIds is missing or empty
+        const invalidBatchRes = await agent.delete('/api/sessions').send({ sessionIds: [] });
+        assert.strictEqual(invalidBatchRes.status, 400);
+
+        // 5. Batch delete both sessions
+        const batchRes = await agent.delete('/api/sessions').send({
+          sessionIds: [s2Id, s3Id],
+        });
+        assert.strictEqual(batchRes.status, 200);
+        assert.strictEqual(batchRes.body.success, true);
+        assert.strictEqual(batchRes.body.count, 2);
+
+        // Verify neither exists in database
+        const remaining = await prisma.focusSession.findMany({
+          where: { id: { in: [s1Id, s2Id, s3Id] } },
+        });
+        assert.strictEqual(remaining.length, 0);
+      });
+    });
   });
 });
+

@@ -9,11 +9,13 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
+  Trash2,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { apiRequest } from '../lib/api';
 import { LocalStorageRepository } from '../lib/storage';
 import { FocusSession } from '../types';
+import { Modal } from '../components/Modal';
 
 export const HistoryPage: React.FC = () => {
   const { user, subjects } = useAuth();
@@ -35,6 +37,12 @@ export const HistoryPage: React.FC = () => {
   const [typeFilter, setTypeFilter] = useState<string>('');
   const [subjectFilter, setSubjectFilter] = useState<string>('');
   const [isLoading, setIsLoading] = useState(false);
+
+  // Selection & Deletion state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [sessionToDelete, setSessionToDelete] = useState<FocusSession | null>(null);
+  const [showBatchDeleteModal, setShowBatchDeleteModal] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchHistory = useCallback(async () => {
     setIsLoading(true);
@@ -74,6 +82,59 @@ export const HistoryPage: React.FC = () => {
       setIsLoading(false);
     }
   }, [page, limit, statusFilter, typeFilter, subjectFilter]);
+
+  const handleToggleSelect = (id: string) => {
+    setSelectedIds((prev) =>
+      prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const pageIds = sessions.map((s) => s.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedIds.includes(id));
+    if (allSelected) {
+      setSelectedIds((prev) => prev.filter((id) => !pageIds.includes(id)));
+    } else {
+      setSelectedIds((prev) => Array.from(new Set([...prev, ...pageIds])));
+    }
+  };
+
+  const confirmDeleteSingle = async () => {
+    if (!sessionToDelete) return;
+    setIsDeleting(true);
+    try {
+      if (user) {
+        await apiRequest(`/api/sessions/${sessionToDelete.id}`, { method: 'DELETE' }).catch(() => {});
+      }
+      LocalStorageRepository.deleteSession(sessionToDelete.id);
+      setSessions((prev) => prev.filter((s) => s.id !== sessionToDelete.id));
+      setTotal((prev) => Math.max(0, prev - 1));
+      setSelectedIds((prev) => prev.filter((id) => id !== sessionToDelete.id));
+      setSessionToDelete(null);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const confirmDeleteBatch = async () => {
+    if (selectedIds.length === 0) return;
+    setIsDeleting(true);
+    try {
+      if (user) {
+        await apiRequest('/api/sessions', {
+          method: 'DELETE',
+          body: JSON.stringify({ sessionIds: selectedIds }),
+        }).catch(() => {});
+      }
+      LocalStorageRepository.deleteSessions(selectedIds);
+      setSessions((prev) => prev.filter((s) => !selectedIds.includes(s.id)));
+      setTotal((prev) => Math.max(0, prev - selectedIds.length));
+      setSelectedIds([]);
+      setShowBatchDeleteModal(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   useEffect(() => {
     fetchHistory();
@@ -189,9 +250,21 @@ export const HistoryPage: React.FC = () => {
               setSubjectFilter('');
               setPage(1);
             }}
-            className="text-xs text-blue-400 hover:text-blue-300 font-bold ml-auto transition-colors"
+            className="text-xs text-blue-400 hover:text-blue-300 font-bold ml-1 sm:ml-auto transition-colors"
           >
             Clear Filters
+          </button>
+        )}
+
+        {/* Delete History Button for Selected Sessions */}
+        {selectedIds.length > 0 && (
+          <button
+            onClick={() => setShowBatchDeleteModal(true)}
+            className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 via-rose-600 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-bold transition-all shadow-lg shadow-rose-500/25 ml-auto active:scale-95"
+            title="Delete selected sessions from history"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Delete Selected ({selectedIds.length})</span>
           </button>
         )}
       </div>
@@ -202,12 +275,22 @@ export const HistoryPage: React.FC = () => {
           <table className="w-full text-left border-collapse text-xs">
             <thead>
               <tr className="border-b border-white/[0.08] bg-slate-900/60 text-slate-400 font-bold uppercase tracking-wider">
+                <th className="py-4 px-3 sm:px-4 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    checked={sessions.length > 0 && sessions.every((s) => selectedIds.includes(s.id))}
+                    onChange={handleToggleSelectAll}
+                    className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                    aria-label="Select all sessions on this page"
+                  />
+                </th>
                 <th className="py-4 px-4 sm:px-6">Date &amp; Start Time</th>
                 <th className="py-4 px-4">Type</th>
                 <th className="py-4 px-4">Subject &amp; Task</th>
                 <th className="py-4 px-4">Planned Duration</th>
                 <th className="py-4 px-4">Actual Focused</th>
-                <th className="py-4 px-4 sm:px-6 text-right">Status</th>
+                <th className="py-4 px-4 text-center">Status</th>
+                <th className="py-4 px-4 sm:px-6 text-right">Action</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/[0.06] text-slate-300">
@@ -216,9 +299,25 @@ export const HistoryPage: React.FC = () => {
                   const badge = statusBadges[s.status] || statusBadges.IDLE;
                   const StatusIcon = badge.icon;
                   const dateObj = new Date(s.startedAt || s.createdAt || Date.now());
+                  const isSelected = selectedIds.includes(s.id);
 
                   return (
-                    <tr key={s.id} className="hover:bg-white/[0.04] transition-colors">
+                    <tr
+                      key={s.id}
+                      className={`hover:bg-white/[0.04] transition-colors ${
+                        isSelected ? 'bg-blue-500/[0.07]' : ''
+                      }`}
+                    >
+                      <td className="py-3.5 px-3 sm:px-4 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelect(s.id)}
+                          className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-blue-500 focus:ring-blue-500 cursor-pointer"
+                          aria-label={`Select session ${s.id}`}
+                        />
+                      </td>
+
                       <td className="py-3.5 px-4 sm:px-6 font-medium text-white whitespace-nowrap">
                         <div>
                           {dateObj.toLocaleDateString('en-US', {
@@ -280,7 +379,7 @@ export const HistoryPage: React.FC = () => {
                         {formatSeconds(s.actualDuration || 0)}
                       </td>
 
-                      <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
+                      <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <span
                           className={`inline-flex items-center space-x-1 px-2.5 py-0.5 rounded-full border text-[11px] font-semibold ${badge.class}`}
                         >
@@ -288,12 +387,23 @@ export const HistoryPage: React.FC = () => {
                           <span>{badge.label}</span>
                         </span>
                       </td>
+
+                      <td className="py-3.5 px-4 sm:px-6 text-right whitespace-nowrap">
+                        <button
+                          onClick={() => setSessionToDelete(s)}
+                          title="Delete this session from history"
+                          className="p-2 rounded-xl text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-500/30"
+                          aria-label="Delete session"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   );
                 })
               ) : (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500">
+                  <td colSpan={8} className="py-12 text-center text-slate-500">
                     No sessions match the selected filters.
                   </td>
                 </tr>
@@ -306,6 +416,7 @@ export const HistoryPage: React.FC = () => {
         <div className="p-4 border-t border-slate-800 bg-[#0d1322]/50 flex items-center justify-between text-xs text-slate-400">
           <span>
             Showing {sessions.length} of {total} sessions
+            {selectedIds.length > 0 && ` (${selectedIds.length} selected)`}
           </span>
 
           <div className="flex items-center space-x-2">
@@ -331,6 +442,78 @@ export const HistoryPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Single Session Confirmation Modal */}
+      <Modal
+        isOpen={Boolean(sessionToDelete)}
+        onClose={() => setSessionToDelete(null)}
+        title="Delete Session History?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Are you sure you want to delete this{' '}
+            <span className="text-white font-bold">
+              {sessionToDelete?.sessionType === 'FOCUS' ? 'Focus Session' : 'Break'}
+            </span>{' '}
+            from your history? This will remove{' '}
+            <span className="text-white font-bold">
+              {formatSeconds(sessionToDelete?.actualDuration || 0)}
+            </span>{' '}
+            of recorded study time.
+          </p>
+          <div className="flex items-center justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setSessionToDelete(null)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeleteSingle}
+              disabled={isDeleting}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isDeleting ? 'Deleting...' : 'Delete Session'}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Delete Batch Confirmation Modal */}
+      <Modal
+        isOpen={showBatchDeleteModal}
+        onClose={() => setShowBatchDeleteModal(false)}
+        title="Delete Selected Sessions?"
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-slate-300">
+            Are you sure you want to delete the{' '}
+            <span className="text-white font-bold">{selectedIds.length}</span> selected
+            session(s) from your history? This action is permanent and cannot be undone.
+          </p>
+          <div className="flex items-center justify-end space-x-3 pt-2">
+            <button
+              type="button"
+              onClick={() => setShowBatchDeleteModal(false)}
+              className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmDeleteBatch}
+              disabled={isDeleting}
+              className="flex items-center space-x-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white text-xs font-bold shadow-lg shadow-rose-500/20 disabled:opacity-50 transition-all"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span>{isDeleting ? 'Deleting...' : `Delete ${selectedIds.length} Sessions`}</span>
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };

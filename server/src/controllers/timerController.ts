@@ -373,3 +373,45 @@ export async function getSessions(req: Request, res: Response) {
     },
   });
 }
+
+export async function deleteSession(req: Request, res: Response) {
+  const userId = (req.user as any).id;
+  const sessionId = req.params.id;
+
+  const session = await prisma.focusSession.findFirst({
+    where: { id: sessionId, userId },
+  });
+
+  if (!session) {
+    return res.status(404).json({ error: 'Session not found or does not belong to you' });
+  }
+
+  await prisma.focusSession.delete({
+    where: { id: sessionId },
+  });
+
+  return res.json({ success: true, message: 'Session deleted successfully' });
+}
+
+export async function deleteSessions(req: Request, res: Response) {
+  const userId = (req.user as any).id;
+  const { sessionIds } = req.body || {};
+
+  if (!Array.isArray(sessionIds) || sessionIds.length === 0) {
+    return res.status(400).json({ error: 'sessionIds must be a non-empty array of session IDs' });
+  }
+
+  const result = await prisma.focusSession.deleteMany({
+    where: {
+      id: { in: sessionIds },
+      userId,
+    },
+  });
+
+  return res.json({
+    success: true,
+    count: result.count,
+    message: `${result.count} session(s) deleted successfully`,
+  });
+}
+

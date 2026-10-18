@@ -6,6 +6,8 @@ import {
   completeSession,
   abandonSession,
   getSessions,
+  deleteSession,
+  deleteSessions,
 } from '../controllers/timerController';
 import { requireAuth } from '../middleware/auth';
 import { validateBody, validateQuery } from '../middleware/validate';
@@ -15,6 +17,7 @@ import {
   completeSessionSchema,
   abandonSessionSchema,
   sessionQuerySchema,
+  deleteSessionsSchema,
 } from '../validation/schemas';
 
 const router = Router();
@@ -27,5 +30,7 @@ router.patch('/:id', validateBody(updateSessionActionSchema), updateSession);
 router.post('/:id/complete', validateBody(completeSessionSchema), completeSession);
 router.post('/:id/abandon', validateBody(abandonSessionSchema), abandonSession);
 router.get('/', validateQuery(sessionQuerySchema), getSessions);
+router.delete('/', validateBody(deleteSessionsSchema), deleteSessions);
+router.delete('/:id', deleteSession);
 
 export default router;

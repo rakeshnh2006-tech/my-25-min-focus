@@ -2,7 +2,7 @@ import express, { Express } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import session from 'express-session';
-import pgSession from 'connect-pg-simple';
+import { PrismaSessionStore } from './config/sessionStore';
 import passport from 'passport';
 import rateLimit from 'express-rate-limit';
 import path from 'path';
@@ -82,76 +82,13 @@ export function createApp(): Express {
   app.use('/api/', apiLimiter);
   app.use('/api/auth/', authLimiter);
 
-const EMBEDDED_SUPABASE_CA = `-----BEGIN CERTIFICATE-----
-MIIDxDCCAqygAwIBAgIUbLxMod62P2ktCiAkxnKJwtE9VPYwDQYJKoZIhvcNAQEL
-BQAwazELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5l
-dyBDYXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJh
-c2UgUm9vdCAyMDIxIENBMB4XDTIxMDQyODEwNTY1M1oXDTMxMDQyNjEwNTY1M1ow
-azELMAkGA1UEBhMCVVMxEDAOBgNVBAgMB0RlbHdhcmUxEzARBgNVBAcMCk5ldyBD
-YXN0bGUxFTATBgNVBAoMDFN1cGFiYXNlIEluYzEeMBwGA1UEAwwVU3VwYWJhc2Ug
-Um9vdCAyMDIxIENBMIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqQXW
-QyHOB+qR2GJobCq/CBmQ40G0oDmCC3mzVnn8sv4XNeWtE5XcEL0uVih7Jo4Dkx1Q
-DmGHBH1zDfgs2qXiLb6xpw/CKQPypZW1JssOTMIfQppNQ87K75Ya0p25Y3ePS2t2
-GtvHxNjUV6kjOZjEn2yWEcBdpOVCUYBVFBNMB4YBHkNRDa/+S4uywAoaTWnCJLUi
-cvTlHmMw6xSQQn1UfRQHk50DMCEJ7Cy1RxrZJrkXXRP3LqQL2ijJ6F4yMfh+Gyb4
-O4XajoVj/+R4GwywKYrrS8PrSNtwxr5StlQO8zIQUSMiq26wM8mgELFlS/32Uclt
-NaQ1xBRizkzpZct9DwIDAQABo2AwXjALBgNVHQ8EBAMCAQYwHQYDVR0OBBYEFKjX
-uXY32CztkhImng4yJNUtaUYsMB8GA1UdIwQYMBaAFKjXuXY32CztkhImng4yJNUt
-aUYsMA8GA1UdEwEB/wQFMAMBAf8wDQYJKoZIhvcNAQELBQADggEBAB8spzNn+4VU
-tVxbdMaX+39Z50sc7uATmus16jmmHjhIHz+l/9GlJ5KqAMOx26mPZgfzG7oneL2b
-VW+WgYUkTT3XEPFWnTp2RJwQao8/tYPXWEJDc0WVQHrpmnWOFKU/d3MqBgBm5y+6
-jB81TU/RG2rVerPDWP+1MMcNNy0491CTL5XQZ7JfDJJ9CCmXSdtTl4uUQnSuv/Qx
-Cea13BX2ZgJc7Au30vihLhub52De4P/4gonKsNHYdbWjg7OWKwNv/zitGDVDB9Y2
-CMTyZKG3XEu5Ghl1LEnI3QmEKsqaCLv12BnVjbkSeZsMnevJPs1Ye6TjjJwdik5P
-o/bKiIz+Fq8=
------END CERTIFICATE-----`;
-
-  // Session storage
+  // Session storage backed by Prisma Client (single connection pool, zero extra pg.Pool instances)
   let sessionStore: session.Store | undefined;
   if (isDatabaseConfigured()) {
     try {
-      const PgStore = pgSession(session);
-      const isRemoteSsl = env.DATABASE_URL.includes('supabase.com') || env.DATABASE_URL.includes('sslmode=');
-      const cleanPgUrl = env.DATABASE_URL.replace(/[\?&]sslmode=[^&]*/, '');
-
-      let sslConfig: any = undefined;
-      if (isRemoteSsl) {
-        const possibleCaPaths = [
-          process.env.NODE_EXTRA_CA_CERTS,
-          path.resolve(__dirname, '../certs/prod-ca-2021.crt'),
-          path.resolve(__dirname, '../../server/certs/prod-ca-2021.crt'),
-          path.resolve(process.cwd(), 'server/certs/prod-ca-2021.crt'),
-          path.resolve(process.cwd(), 'certs/prod-ca-2021.crt'),
-        ].filter(Boolean) as string[];
-
-        let caContent = EMBEDDED_SUPABASE_CA;
-        for (const p of possibleCaPaths) {
-          if (fs.existsSync(p)) {
-            try {
-              caContent = fs.readFileSync(p, 'utf8');
-              break;
-            } catch {
-              // fallback to embedded CA
-            }
-          }
-        }
-
-        sslConfig = {
-          rejectUnauthorized: false,
-          ca: caContent,
-        };
-      }
-
-      sessionStore = new PgStore({
-        conObject: {
-          connectionString: isRemoteSsl ? cleanPgUrl : env.DATABASE_URL,
-          ssl: sslConfig,
-        },
-        tableName: 'sessions',
-        createTableIfMissing: true,
-      });
+      sessionStore = new PrismaSessionStore();
     } catch (err) {
-      console.warn('[Session] Failed to initialize PostgreSQL session store, falling back to memory store:', err);
+      console.warn('[Session] Failed to initialize Prisma session store, falling back to memory store:', err);
     }
   }
 

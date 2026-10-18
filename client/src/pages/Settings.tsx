@@ -17,6 +17,41 @@ import { soundManager } from '../lib/sound';
 import { LocalStorageRepository } from '../lib/storage';
 import { AppTheme } from '../types';
 
+const MAJOR_TIMEZONES = [
+  { value: 'UTC', label: 'UTC (Coordinated Universal Time)' },
+  // Americas
+  { value: 'America/New_York', label: 'Eastern Time (US / Canada) — New York, Toronto' },
+  { value: 'America/Chicago', label: 'Central Time (US / Canada) — Chicago, Dallas' },
+  { value: 'America/Denver', label: 'Mountain Time (US / Canada) — Denver, Phoenix' },
+  { value: 'America/Los_Angeles', label: 'Pacific Time (US / Canada) — Los Angeles, Vancouver' },
+  { value: 'America/Anchorage', label: 'Alaska Time — Anchorage' },
+  { value: 'Pacific/Honolulu', label: 'Hawaii Time — Honolulu' },
+  { value: 'America/Sao_Paulo', label: 'Brasilia Time — São Paulo, Rio' },
+  { value: 'America/Buenos_Aires', label: 'Argentina Time — Buenos Aires' },
+  // Europe & Africa
+  { value: 'Europe/London', label: 'London, Dublin (GMT / BST)' },
+  { value: 'Europe/Paris', label: 'Paris, Amsterdam, Brussels (CET / CEST)' },
+  { value: 'Europe/Berlin', label: 'Berlin, Rome, Madrid, Vienna (CET / CEST)' },
+  { value: 'Europe/Athens', label: 'Athens, Bucharest, Helsinki (EET / EEST)' },
+  { value: 'Africa/Cairo', label: 'Cairo (Egypt)' },
+  { value: 'Africa/Johannesburg', label: 'Johannesburg (South Africa)' },
+  // Asia & Middle East
+  { value: 'Asia/Dubai', label: 'Dubai, Abu Dhabi (Gulf Standard Time)' },
+  { value: 'Asia/Kolkata', label: 'India Standard Time (IST) — Mumbai, Delhi, Bengaluru' },
+  { value: 'Asia/Calcutta', label: 'India (Asia/Calcutta Alias)' },
+  { value: 'Asia/Dhaka', label: 'Bangladesh — Dhaka' },
+  { value: 'Asia/Bangkok', label: 'Indochina — Bangkok, Jakarta, Hanoi' },
+  { value: 'Asia/Singapore', label: 'Singapore, Kuala Lumpur (SGT)' },
+  { value: 'Asia/Hong_Kong', label: 'Hong Kong, Beijing, Shanghai (HKT)' },
+  { value: 'Asia/Tokyo', label: 'Japan Standard Time (JST) — Tokyo, Osaka' },
+  { value: 'Asia/Seoul', label: 'Korea Standard Time (KST) — Seoul' },
+  // Australia & Pacific
+  { value: 'Australia/Perth', label: 'Western Australia — Perth' },
+  { value: 'Australia/Adelaide', label: 'Central Australia — Adelaide' },
+  { value: 'Australia/Sydney', label: 'Eastern Australia — Sydney, Melbourne (AEST)' },
+  { value: 'Pacific/Auckland', label: 'New Zealand — Auckland, Wellington (NZST)' },
+];
+
 export const SettingsPage: React.FC = () => {
   const { user, preference, updatePreferences, logout } = useAuth();
   const { theme, setTheme } = useTheme();
@@ -31,7 +66,24 @@ export const SettingsPage: React.FC = () => {
   // App Toggles
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [notificationsEnabled, setNotificationsEnabled] = useState(false);
-  const [timezone, setTimezone] = useState('UTC');
+  const [timezone, setTimezone] = useState(() => {
+    return typeof Intl !== 'undefined'
+      ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+      : 'UTC';
+  });
+
+  const systemTimezone = typeof Intl !== 'undefined'
+    ? Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
+    : 'UTC';
+
+  // Compute timezone options ensuring current and system timezone are always selectable
+  const timezoneOptions = [...MAJOR_TIMEZONES];
+  if (timezone && !timezoneOptions.some((t) => t.value === timezone)) {
+    timezoneOptions.unshift({ value: timezone, label: `${timezone} (Current)` });
+  }
+  if (systemTimezone && !timezoneOptions.some((t) => t.value === systemTimezone)) {
+    timezoneOptions.unshift({ value: systemTimezone, label: `${systemTimezone} (System Detected)` });
+  }
 
   // Ambient Rain Test
   const [testRainPlaying, setTestRainPlaying] = useState(false);
@@ -51,9 +103,30 @@ export const SettingsPage: React.FC = () => {
       setDailyGoalMinutes(preference.dailyGoalMinutes);
       setSoundEnabled(preference.soundEnabled);
       setNotificationsEnabled(preference.notificationsEnabled);
-      setTimezone(preference.timezone || 'UTC');
+      setTimezone(preference.timezone || systemTimezone);
+      if (preference.theme && preference.theme !== theme) {
+        setTheme(preference.theme);
+      }
     }
   }, [preference]);
+
+  const handleThemeChange = async (newTheme: AppTheme) => {
+    setTheme(newTheme);
+    try {
+      await updatePreferences({ theme: newTheme });
+    } catch {
+      // Local fallback handled in AuthContext
+    }
+  };
+
+  const handleTimezoneChange = async (newTz: string) => {
+    setTimezone(newTz);
+    try {
+      await updatePreferences({ timezone: newTz });
+    } catch {
+      // Local fallback handled in AuthContext
+    }
+  };
 
   const handleTestSound = () => {
     soundManager.playSessionComplete();
@@ -361,51 +434,62 @@ export const SettingsPage: React.FC = () => {
 
         {/* Section 3: Visual Theme & Timezone */}
         <div className="clay-card p-4 sm:p-6 space-y-5">
-          <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
-            <div className="p-2 rounded-xl bg-indigo-500/10 text-indigo-400">
+          <div className="flex items-center space-x-2.5 pb-3 border-b border-white/[0.08]">
+            <div className="p-2 rounded-xl bg-indigo-500/15 border border-indigo-400/30 text-indigo-400 shadow-inner">
               <Palette className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Appearance & Timezone</h2>
-              <p className="text-xs text-slate-400">Theme mode and streak calculation timezone</p>
+              <h2 className="text-sm font-extrabold text-white">Appearance &amp; Timezone</h2>
+              <p className="text-xs text-slate-400 font-medium">Theme mode and streak calculation timezone</p>
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                 Theme
               </label>
               <select
                 value={theme}
-                onChange={(e) => setTheme(e.target.value as AppTheme)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                onChange={(e) => handleThemeChange(e.target.value as AppTheme)}
+                className="w-full clay-inset rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-400 cursor-pointer"
               >
-                <option value="dark">Cognify Dark (Default)</option>
-                <option value="light">Light Theme</option>
-                <option value="system">System Preference</option>
+                <option value="dark">🌙 Cognify Dark (Default)</option>
+                <option value="light">☀️ Light Theme</option>
+                <option value="system">💻 System Preference</option>
               </select>
+              <span className="text-[10px] text-slate-400 mt-1 block font-medium">
+                Active: {theme === 'dark' ? 'Dark Mode' : theme === 'light' ? 'Light Mode' : 'System Matched'}
+              </span>
             </div>
 
             <div>
-              <label className="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
-                Timezone (For Daily Streaks)
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-400">
+                  Timezone (For Daily Streaks)
+                </label>
+                <button
+                  type="button"
+                  onClick={() => handleTimezoneChange(systemTimezone)}
+                  className="text-[10px] text-blue-400 hover:text-blue-300 font-bold transition-colors"
+                >
+                  Use System ({systemTimezone})
+                </button>
+              </div>
               <select
                 value={timezone}
-                onChange={(e) => setTimezone(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-focus-500"
+                onChange={(e) => handleTimezoneChange(e.target.value)}
+                className="w-full clay-inset rounded-xl px-3.5 py-2.5 text-xs sm:text-sm text-white focus:outline-none focus:border-blue-400 cursor-pointer"
               >
-                <option value="UTC">UTC (Coordinated Universal Time)</option>
-                <option value="America/New_York">Eastern Time (US / Canada)</option>
-                <option value="America/Chicago">Central Time (US / Canada)</option>
-                <option value="America/Denver">Mountain Time (US / Canada)</option>
-                <option value="America/Los_Angeles">Pacific Time (US / Canada)</option>
-                <option value="Europe/London">London (GMT / BST)</option>
-                <option value="Europe/Paris">Paris / Berlin (CET)</option>
-                <option value="Asia/Kolkata">India Standard Time (IST)</option>
-                <option value="Asia/Tokyo">Tokyo (JST)</option>
+                {timezoneOptions.map((tz) => (
+                  <option key={tz.value} value={tz.value}>
+                    {tz.label}
+                  </option>
+                ))}
               </select>
+              <span className="text-[10px] text-slate-400 mt-1 block font-medium">
+                Active: {timezone} &bull; Daily streaks reset at local midnight
+              </span>
             </div>
           </div>
         </div>

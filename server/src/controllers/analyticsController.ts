@@ -95,8 +95,8 @@ export async function getAnalyticsTrends(req: Request, res: Response) {
     });
   }
 
-  const startDate = new Date(`${days[0].date}T00:00:00Z`);
-  const endDate = new Date(`${days[days.length - 1].date}T23:59:59.999Z`);
+  const candidateStart = new Date(new Date(`${days[0].date}T00:00:00Z`).getTime() - 24 * 60 * 60 * 1000);
+  const candidateEnd = new Date(new Date(`${days[days.length - 1].date}T23:59:59.999Z`).getTime() + 24 * 60 * 60 * 1000);
 
   const sessions = await prisma.focusSession.findMany({
     where: {
@@ -104,8 +104,8 @@ export async function getAnalyticsTrends(req: Request, res: Response) {
       status: 'COMPLETED',
       sessionType: 'FOCUS',
       startedAt: {
-        gte: startDate,
-        lte: endDate,
+        gte: candidateStart,
+        lte: candidateEnd,
       },
     },
     select: {
@@ -233,8 +233,8 @@ export async function getAnalyticsHeatmap(req: Request, res: Response) {
     });
   }
 
-  const startDate = new Date(`${days[0].date}T00:00:00Z`);
-  const endDate = new Date(`${days[days.length - 1].date}T23:59:59.999Z`);
+  const candidateStart = new Date(new Date(`${days[0].date}T00:00:00Z`).getTime() - 24 * 60 * 60 * 1000);
+  const candidateEnd = new Date(new Date(`${days[days.length - 1].date}T23:59:59.999Z`).getTime() + 24 * 60 * 60 * 1000);
 
   const sessions = await prisma.focusSession.findMany({
     where: {
@@ -242,8 +242,8 @@ export async function getAnalyticsHeatmap(req: Request, res: Response) {
       status: 'COMPLETED',
       sessionType: 'FOCUS',
       startedAt: {
-        gte: startDate,
-        lte: endDate,
+        gte: candidateStart,
+        lte: candidateEnd,
       },
     },
     select: {

@@ -8,6 +8,28 @@ const STORAGE_KEYS = {
   ACTIVE_SESSION: 'cognify_active_session',
 };
 
+// --- TIMEZONE-AWARE DATE HELPERS ---
+export function formatDateInTimezone(dateInput: Date | string, timezone: string = 'UTC'): string {
+  try {
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    if (isNaN(d.getTime())) return new Date().toISOString().split('T')[0];
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(d);
+  } catch {
+    const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+    return d.toISOString().split('T')[0];
+  }
+}
+
+export function getShiftedDateKey(referenceDate: Date, dayOffset: number, timezone: string = 'UTC'): string {
+  const d = new Date(referenceDate.getTime() + dayOffset * 24 * 60 * 60 * 1000);
+  return formatDateInTimezone(d, timezone);
+}
+
 const DEFAULT_PREFERENCES: UserPreference = {
   id: 'local_pref',
   userId: 'user',
@@ -298,21 +320,22 @@ export const LocalStorageRepository = {
   getDailySummary(): DailyFocusSummary {
     const sessions = this.getSessions();
     const prefs = this.getPreferences();
+    const userTz = prefs.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
     const now = new Date();
-    const todayDateStr = now.toISOString().split('T')[0];
+    const todayDateStr = formatDateInTimezone(now, userTz);
 
-    // Filter today's completed focus sessions
+    // Filter today's completed focus sessions in user's timezone
     const todaySessions = sessions.filter(
       (s) =>
         s.sessionType === 'FOCUS' &&
         s.status === 'COMPLETED' &&
         s.endedAt &&
-        s.endedAt.startsWith(todayDateStr)
+        formatDateInTimezone(s.endedAt, userTz) === todayDateStr
     );
 
     const focusedMinutes = Math.round(
-      todaySessions.reduce((acc, s) => acc + s.actualDuration, 0) / 60
+      todaySessions.reduce((acc, s) => acc + (s.actualDuration || 0), 0) / 60
     );
     const completedSessions = todaySessions.length;
     const dailyGoalMinutes = prefs.dailyGoalMinutes || 120;
@@ -321,12 +344,12 @@ export const LocalStorageRepository = {
       dailyGoalMinutes > 0 ? Math.round((focusedMinutes / dailyGoalMinutes) * 100) : 0
     );
 
-    // Calculate streak from unique active days
+    // Calculate streak from unique active days in user's timezone
     const activeDates = Array.from(
       new Set(
         sessions
           .filter((s) => s.sessionType === 'FOCUS' && s.status === 'COMPLETED' && s.endedAt)
-          .map((s) => s.endedAt!.split('T')[0])
+          .map((s) => formatDateInTimezone(s.endedAt!, userTz))
       )
     ).sort();
 
@@ -350,26 +373,23 @@ export const LocalStorageRepository = {
         }
       }
 
-      // Compute current streak
-      const yesterday = new Date(now);
-      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
-      const yesterdayStr = yesterday.toISOString().split('T')[0];
-
-      let checkDate = new Date(now);
+      // Compute current streak: either today or yesterday in user's timezone
+      const yesterdayStr = getShiftedDateKey(now, -1, userTz);
+      let dayOffset = 0;
       if (!dateSet.has(todayDateStr)) {
         if (dateSet.has(yesterdayStr)) {
-          checkDate = yesterday;
+          dayOffset = -1;
         } else {
-          checkDate = null as any;
+          dayOffset = 99999;
         }
       }
 
-      if (checkDate) {
+      if (dayOffset <= 0) {
         while (true) {
-          const key = checkDate.toISOString().split('T')[0];
+          const key = getShiftedDateKey(now, dayOffset, userTz);
           if (dateSet.has(key)) {
             currentStreak += 1;
-            checkDate.setUTCDate(checkDate.getUTCDate() - 1);
+            dayOffset -= 1;
           } else {
             break;
           }

@@ -16,24 +16,27 @@ export async function getDashboardSummary(req: Request, res: Response) {
   // Determine start and end of today in user's timezone
   const now = new Date();
   const todayKey = StreakService.formatDateKey(now, timezone);
-  const startOfToday = new Date(`${todayKey}T00:00:00Z`);
-  const endOfToday = new Date(`${todayKey}T23:59:59.999Z`);
 
-  // Query completed focus sessions today
-  const todaySessions = await prisma.focusSession.findMany({
+  // Safely query recent completed focus sessions around today
+  const candidateStart = new Date(now.getTime() - 36 * 60 * 60 * 1000);
+  const candidateSessions = await prisma.focusSession.findMany({
     where: {
       userId,
       status: 'COMPLETED',
       sessionType: 'FOCUS',
       startedAt: {
-        gte: startOfToday,
-        lte: endOfToday,
+        gte: candidateStart,
       },
     },
     select: {
+      startedAt: true,
       actualDuration: true,
     },
   });
+
+  const todaySessions = candidateSessions.filter(
+    (s) => StreakService.formatDateKey(s.startedAt, timezone) === todayKey
+  );
 
   const todayFocusedSeconds = todaySessions.reduce((acc, s) => acc + s.actualDuration, 0);
   const todayFocusedMinutes = Math.round(todayFocusedSeconds / 60);

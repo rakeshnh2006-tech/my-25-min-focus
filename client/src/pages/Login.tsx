@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, HelpCircle, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { AlertCircle, ArrowLeft } from 'lucide-react';
 import { FocusWisdomCard } from '../components/FocusWisdomCard';
 
 interface LoginProps {
@@ -8,9 +7,7 @@ interface LoginProps {
 }
 
 export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
-  const { status } = useAuth();
   const [errorParam, setErrorParam] = useState<string | null>(null);
-  const [showSetupGuide, setShowSetupGuide] = useState(false);
 
   // Automated time-aware welcome line
   const [welcomeInfo, setWelcomeInfo] = useState<{ greeting: string; subtitle: string; icon: string }>({
@@ -51,17 +48,12 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
     const err = params.get('error');
     if (err) {
       setErrorParam(err);
-      if (err === 'oauth_not_configured' || err === 'db_connection_error') {
-        setShowSetupGuide(true);
-      }
     }
   }, []);
 
   const handleGoogleLogin = () => {
     window.location.href = '/api/auth/google';
   };
-
-  const isConfigured = status?.googleOAuth?.configured && status?.database?.connected;
 
   return (
     <div className="min-h-screen bg-[#070B16] flex flex-col items-center justify-center p-3.5 xs:p-5 sm:p-6 text-[#F8FAFC] selection:bg-focus-500 selection:text-white relative overflow-x-hidden py-8 sm:py-12">
@@ -115,14 +107,14 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
           <div className="mb-5 p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs text-left flex items-start space-x-2.5">
             <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
             <div>
-              <strong className="font-semibold block text-amber-300">Notice</strong>
+              <strong className="font-semibold block text-amber-300">Sign-in Notice</strong>
               {errorParam === 'oauth_not_configured'
-                ? 'Google OAuth credentials are not set in environment variables.'
+                ? 'Authentication service is temporarily unavailable. Please try again shortly.'
                 : errorParam === 'db_connection_error'
-                ? 'Could not connect to database. Please verify DATABASE_URL in Vercel.'
+                ? 'Unable to connect to server. Please try again in a few moments.'
                 : errorParam === 'auth_failed'
                 ? 'Google sign-in was cancelled or encountered an error. Please try again.'
-                : `Notice: ${errorParam}`}
+                : 'Could not complete sign-in. Please try again.'}
             </div>
           </div>
         )}
@@ -131,7 +123,7 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
         <div className="space-y-3 pt-1">
           <button
             onClick={handleGoogleLogin}
-            className="w-full clay-btn bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-sm py-4 rounded-2xl shadow-xl flex items-center justify-center space-x-3 transition-all"
+            className="w-full clay-btn bg-white hover:bg-slate-100 text-slate-900 font-extrabold text-sm py-4 rounded-2xl shadow-xl flex items-center justify-center space-x-3 transition-all active:scale-[0.98]"
           >
             {/* Google G SVG */}
             <svg className="w-4 h-4 flex-shrink-0" viewBox="0 0 24 24">
@@ -159,32 +151,6 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
             Authentication is required to sync your focus sessions, tasks, and coursework.
           </p>
         </div>
-
-        {/* Setup Drawer Toggle if database or oauth is not fully configured */}
-        {(!isConfigured || errorParam) && (
-          <div className="mt-5 pt-4 border-t border-slate-800/80">
-            <button
-              onClick={() => setShowSetupGuide(!showSetupGuide)}
-              className="text-[11px] text-slate-400 hover:text-blue-400 flex items-center justify-center space-x-1 mx-auto transition-colors"
-            >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span>Database &amp; Cloud Setup Guide</span>
-              {showSetupGuide ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-            </button>
-
-            {showSetupGuide && (
-              <div className="mt-3 p-3.5 rounded-xl bg-[#080D1A] border border-slate-800 text-[11px] text-slate-300 text-left space-y-2">
-                <p className="font-semibold text-white">Vercel Environment Setup:</p>
-                <ul className="list-disc pl-4 space-y-1 text-slate-400">
-                  <li><strong className="text-slate-200">DATABASE_URL:</strong> PostgreSQL connection string (Supabase / Neon).</li>
-                  <li><strong className="text-slate-200">GOOGLE_CLIENT_ID:</strong> From Google Cloud Console.</li>
-                  <li><strong className="text-slate-200">GOOGLE_CLIENT_SECRET:</strong> From Google Cloud Console.</li>
-                  <li><strong className="text-slate-200">SESSION_SECRET:</strong> Any secure 32+ character string.</li>
-                </ul>
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
       <div className="mt-6 text-center text-[11px] text-slate-600">

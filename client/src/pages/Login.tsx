@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AlertCircle, Sparkles, RefreshCw, HelpCircle, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
+import { AlertCircle, RefreshCw, HelpCircle, ChevronDown, ChevronUp, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getRandomQuote, Quote } from '../lib/quotes';
 
@@ -14,12 +14,13 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
 
   // Dynamic quote picked whenever the page is opened or refreshed
   const [quote, setQuote] = useState<Quote>(() => getRandomQuote());
+  const [isQuoteTransitioning, setIsQuoteTransitioning] = useState<boolean>(false);
 
   // Automated time-aware welcome line
   const [welcomeInfo, setWelcomeInfo] = useState<{ greeting: string; subtitle: string; icon: string }>({
     greeting: 'Welcome to Cognify',
     subtitle: 'Sign in with Google to access your focus workspace.',
-    icon: '✨',
+    icon: '🎯',
   });
 
   useEffect(() => {
@@ -65,8 +66,25 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
   };
 
   const handleRefreshQuote = () => {
-    setQuote(getRandomQuote());
+    if (isQuoteTransitioning) return;
+    setIsQuoteTransitioning(true);
+    setTimeout(() => {
+      setQuote(getRandomQuote());
+      setIsQuoteTransitioning(false);
+    }, 200);
   };
+
+  // Subtle auto-cycle with smooth text transition
+  useEffect(() => {
+    const cycleTimer = setInterval(() => {
+      setIsQuoteTransitioning(true);
+      setTimeout(() => {
+        setQuote(getRandomQuote());
+        setIsQuoteTransitioning(false);
+      }, 200);
+    }, 15000);
+    return () => clearInterval(cycleTimer);
+  }, []);
 
   const isConfigured = status?.googleOAuth?.configured && status?.database?.connected;
 
@@ -114,24 +132,36 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
           <p className="text-xs text-slate-400 mt-0.5">{welcomeInfo.subtitle}</p>
         </div>
 
-        {/* Motivational Quote Box (Recessed Clay Well) */}
+        {/* Motivational Quote Box (Recessed Clay Well with Smooth Text Transition) */}
         <div className="my-5 p-4 rounded-2xl clay-inset text-left relative group">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400">
               Focus Wisdom
             </span>
             <button
               onClick={handleRefreshQuote}
+              disabled={isQuoteTransitioning}
               title="Get another quote"
-              className="text-slate-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-white/[0.08]"
+              className="text-slate-400 hover:text-blue-300 transition-colors p-1 rounded-lg hover:bg-white/[0.08] active:scale-90"
               aria-label="Refresh quote"
             >
-              <RefreshCw className="w-3 h-3" />
+              <RefreshCw
+                className={`w-3 h-3 transition-transform duration-500 ease-in-out ${
+                  isQuoteTransitioning ? 'rotate-180 text-blue-400' : ''
+                }`}
+              />
             </button>
           </div>
-          <p className="text-xs text-slate-300 italic leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
-          <p className="text-[11px] font-semibold text-amber-400 mt-2 text-right">&mdash; {quote.author}</p>
+          <div
+            className={`transition-all duration-300 ease-out transform ${
+              isQuoteTransitioning
+                ? 'opacity-0 -translate-y-1 scale-[0.99] filter blur-[0.5px]'
+                : 'opacity-100 translate-y-0 scale-100 filter blur-0'
+            }`}
+          >
+            <p className="text-xs text-slate-300 italic leading-relaxed">&ldquo;{quote.text}&rdquo;</p>
+            <p className="text-[11px] font-semibold text-amber-400 mt-2 text-right">&mdash; {quote.author}</p>
+          </div>
         </div>
 
         {/* Error Notification Alert */}

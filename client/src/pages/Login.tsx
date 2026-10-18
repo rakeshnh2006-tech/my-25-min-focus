@@ -50,8 +50,13 @@ export const Login: React.FC<LoginProps> = ({ onBackToApp }) => {
       });
     }
 
-    const params = new URLSearchParams(window.location.search);
-    const err = params.get('error');
+    const searchParams = new URLSearchParams(window.location.search);
+    let err = searchParams.get('error');
+    if (!err && window.location.hash.includes('?')) {
+      const hashQuery = window.location.hash.split('?')[1];
+      const hashParams = new URLSearchParams(hashQuery);
+      err = hashParams.get('error');
+    }
     if (err) {
       setErrorParam(err);
       if (err === 'oauth_not_configured' || err === 'db_connection_error') {

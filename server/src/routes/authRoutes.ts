@@ -8,10 +8,11 @@ const router = Router();
 
 // Reconcile client redirects for local development vs single-domain Vercel deployment
 const getClientRedirect = (subpath: string): string => {
+  const hash = subpath.startsWith('/') ? `/#${subpath.slice(1)}` : `/#${subpath}`;
   if (process.env.VERCEL || !env.CLIENT_URL || env.CLIENT_URL === '/') {
-    return subpath;
+    return hash;
   }
-  return `${env.CLIENT_URL}${subpath}`;
+  return `${env.CLIENT_URL}${hash}`;
 };
 
 // Public auth and system status

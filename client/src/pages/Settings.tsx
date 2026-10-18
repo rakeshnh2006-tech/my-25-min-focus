@@ -4,18 +4,12 @@ import {
   Volume2,
   Bell,
   Palette,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  Database,
-  Key,
   LogOut,
   User as UserIcon,
   Download,
   Trash2,
-  Cloud,
-  ChevronDown,
-  ChevronUp,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
@@ -24,7 +18,7 @@ import { LocalStorageRepository } from '../lib/storage';
 import { AppTheme } from '../types';
 
 export const SettingsPage: React.FC = () => {
-  const { user, preference, updatePreferences, status, logout } = useAuth();
+  const { user, preference, updatePreferences, logout } = useAuth();
   const { theme, setTheme } = useTheme();
 
   // Durations
@@ -46,7 +40,6 @@ export const SettingsPage: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [showDbGuide, setShowDbGuide] = useState(false);
 
   // Load preferences from context
   useEffect(() => {
@@ -450,94 +443,7 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Section 5: System Diagnostics & Setup Help */}
-        <div className="clay-card p-4 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <div className="flex items-center space-x-2">
-              <ShieldCheck className="w-4 h-4 text-blue-400" />
-              <h2 className="text-sm font-bold text-white">System & Cloud Infrastructure</h2>
-            </div>
-            <button
-              type="button"
-              onClick={() => setShowDbGuide(!showDbGuide)}
-              className="text-xs text-blue-400 hover:underline flex items-center space-x-1"
-            >
-              <span>{showDbGuide ? 'Hide Setup Guide' : 'How to Connect Cloud Database'}</span>
-              {showDbGuide ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Cloud className="w-4 h-4 text-emerald-400" />
-                <span className="font-semibold text-slate-300">Offline Fallback</span>
-              </div>
-              <span className="font-semibold px-2 py-0.5 rounded text-[11px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                Active &bull; Zero Lockout
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Key className="w-4 h-4 text-blue-400" />
-                <span className="font-semibold text-slate-300">Google OAuth 2.0</span>
-              </div>
-              <span
-                className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
-                  status?.googleOAuth?.configured
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                }`}
-              >
-                {status?.googleOAuth?.configured ? 'Configured ✅' : 'Optional'}
-              </span>
-            </div>
-
-            <div className="p-3.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Database className="w-4 h-4 text-blue-400" />
-                <span className="font-semibold text-slate-300">PostgreSQL</span>
-              </div>
-              <span
-                className={`font-semibold px-2 py-0.5 rounded text-[11px] ${
-                  status?.database?.connected
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                }`}
-              >
-                {status?.database?.connected ? 'Connected ✅' : 'Local Mode'}
-              </span>
-            </div>
-          </div>
-
-          {showDbGuide && (
-            <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 text-xs text-slate-300 space-y-2.5 animate-in fade-in">
-              <p className="font-bold text-white">
-                Connecting PostgreSQL & Google OAuth to Vercel:
-              </p>
-              <ol className="list-decimal pl-4 space-y-1.5 text-slate-400">
-                <li>
-                  Go to your <strong className="text-slate-200">Vercel Project &gt; Settings &gt; Environment Variables</strong>.
-                </li>
-                <li>
-                  Set <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">DATABASE_URL</code> to your pooled PostgreSQL URL (e.g. from Supabase, Neon, or Railway) with <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">?sslmode=require&pgbouncer=true</code>.
-                </li>
-                <li>
-                  Set <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">GOOGLE_CLIENT_ID</code> and <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">GOOGLE_CLIENT_SECRET</code> from the Google Cloud Console.
-                </li>
-                <li>
-                  Set <code className="text-blue-400 bg-slate-800 px-1.5 py-0.5 rounded">SESSION_SECRET</code> to any secure 32+ character random string.
-                </li>
-              </ol>
-              <p className="text-[11px] text-emerald-400 pt-1">
-                Note: Even without any of these variables, Cognify works immediately for all users with client-side LocalStorage.
-              </p>
-            </div>
-          )}
-        </div>
-
-        {/* Section 6: Account & Sign Out */}
+        {/* Section 5: Account & Sign Out */}
         <div className="clay-card p-4 sm:p-6 space-y-4">
           <div className="flex items-center space-x-2.5 pb-3 border-b border-slate-800">
             <div className="p-2 rounded-xl bg-slate-800 text-slate-300">
